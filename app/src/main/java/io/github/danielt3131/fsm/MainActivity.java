@@ -57,7 +57,6 @@ public class MainActivity extends AppCompatActivity {
         inputSegmentSize.setOnClickListener(getSegmentSize);
         startButton.setOnClickListener(startButtonView);
 
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (Environment.isExternalStorageManager()) {
                 hasRW = true;
@@ -79,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     boolean gotInputPath = false;
-    boolean merged = false;
+    boolean merged = true;
     boolean split = false;
 
     View.OnClickListener getSegmentSize = new View.OnClickListener() {
@@ -95,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener fileSelectView = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            fileSelectButton.setText(String.valueOf(segmentSize));
+            inputSegmentSize.setText("");
             // Create an input stream
             getInputFileURI();
             File saveDir = new File(SAVE_LOCATION);
@@ -109,7 +108,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
-
     View.OnClickListener startButtonView = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -124,7 +122,6 @@ public class MainActivity extends AppCompatActivity {
                     toast.show();
                 }
             } else if (split) {
-
                 try {
                     if (inputSegmentSize.getText().length() == 0) {
                         toast.setText("Enter segment size in bytes");
@@ -207,15 +204,11 @@ public class MainActivity extends AppCompatActivity {
         }
         FileInputStream fileInputStream = new FileInputStream(inputFile);
         long i;
-        startButton.setText("Started Split File");
         Log.d("Split File", "Started Split File");
-        fileSelectButton.setText(String.valueOf(buffer.length));
-        inputSegmentSize.setText(String.valueOf(numberOfSegments) + " | " + String.valueOf(remainderSegmentSize));
         for (i = 0; i < numberOfSegments; i++) {
             fileInputStream.read(buffer, 0, buffer.length);
-            Log.e("FileRead", "Read File");
+            Log.d("FileRead", "Read File");
             String outputName = String.format("%s.fsm.%d", inputFileName, i + 1);
-            fileSelectButton.setText(String.valueOf(i + 1));
             String outputFilePath = SAVE_LOCATION + outputName;
             FileOutputStream outputStream = new FileOutputStream(outputFilePath);
             outputStream.write(buffer, 0, buffer.length);
@@ -247,7 +240,6 @@ public class MainActivity extends AppCompatActivity {
         long i = 1;
         boolean hasCompleted = false;
         while (!hasCompleted) {
-            fileSelectButton.setText(String.valueOf(i));
             String fileSegmentPath = String.format("%s%s.fsm.%d", segmentDir, outputName, i);
             File fileSegment =  new File(fileSegmentPath);
             if (fileSegment.exists()) {
@@ -260,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 hasCompleted = true;
             }
+            fileSegment.delete();   // Remove segment from storage / auto cleanup
         }
         outputStream.close();
     }
