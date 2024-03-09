@@ -45,7 +45,7 @@
         android:layout_marginBottom="82dp"
         android:ems="10"
         android:inputType="number"
-        android:visibility="visible"
+        android:visibility="invisible"
         app:layout_constraintBottom_toTopOf="@+id/toggleSwitch"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

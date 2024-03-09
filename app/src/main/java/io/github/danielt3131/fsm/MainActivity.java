@@ -27,7 +27,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
-    Button execButton, startButton;
+    Button fileSelectButton, startButton;
     Switch toggleSwitch;
     final int READ_WRITE_PERM_REQ = 15;
     final int INPUT_FILE = 10;
@@ -48,11 +48,11 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-        execButton = findViewById(R.id.fileSelector);
+        fileSelectButton = findViewById(R.id.fileSelector);
         toggleSwitch = findViewById(R.id.toggleSwitch);
         startButton = findViewById(R.id.startButton);
         inputSegmentSize = findViewById(R.id.segmentSize);
-        execButton.setOnClickListener(execButtonView);
+        fileSelectButton.setOnClickListener(fileSelectView);
         toggleSwitch.setOnCheckedChangeListener(toggleSwitchListener);
         inputSegmentSize.setOnClickListener(getSegmentSize);
         startButton.setOnClickListener(startButtonView);
@@ -87,15 +87,15 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
             if (split && gotInputPath && (inputSegmentSize.getText().length() > 0)) {
-                execButton.setText("Press the start button to begin");
+                fileSelectButton.setText("Press the start button to begin");
             }
         }
     };
 
-    View.OnClickListener execButtonView = new View.OnClickListener() {
+    View.OnClickListener fileSelectView = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            execButton.setText(String.valueOf(segmentSize));
+            fileSelectButton.setText(String.valueOf(segmentSize));
             // Create an input stream
             getInputFileURI();
             File saveDir = new File(SAVE_LOCATION);
@@ -103,9 +103,9 @@ public class MainActivity extends AppCompatActivity {
                 saveDir.mkdir();
             }
             if (split && inputSegmentSize.getText().length() == 0) {
-                execButton.setText("Enter segment size in bytes");
+                fileSelectButton.setText("Enter segment size in bytes");
             } else {
-                execButton.setText("Press the start button to begin");
+                fileSelectButton.setText("Press the start button to begin");
             }
         }
     };
@@ -165,10 +165,14 @@ public class MainActivity extends AppCompatActivity {
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
             if (isChecked) {
                 toggleSwitch.setText("Split mode");
+                inputSegmentSize.setVisibility(View.VISIBLE);
+                inputSegmentSize.setHint("Segment size in bytes");
                 split = true;
                 merged = false;
             } else {
                 toggleSwitch.setText("Merge mode");
+                inputSegmentSize.setHint("");
+                inputSegmentSize.setVisibility(View.INVISIBLE);
                 split = false;
                 merged = true;
             }
@@ -205,13 +209,13 @@ public class MainActivity extends AppCompatActivity {
         long i;
         startButton.setText("Started Split File");
         Log.d("Split File", "Started Split File");
-        execButton.setText(String.valueOf(buffer.length));
+        fileSelectButton.setText(String.valueOf(buffer.length));
         inputSegmentSize.setText(String.valueOf(numberOfSegments) + " | " + String.valueOf(remainderSegmentSize));
         for (i = 0; i < numberOfSegments; i++) {
             fileInputStream.read(buffer, 0, buffer.length);
             Log.e("FileRead", "Read File");
             String outputName = String.format("%s.fsm.%d", inputFileName, i + 1);
-            execButton.setText(String.valueOf(i + 1));
+            fileSelectButton.setText(String.valueOf(i + 1));
             String outputFilePath = SAVE_LOCATION + outputName;
             FileOutputStream outputStream = new FileOutputStream(outputFilePath);
             outputStream.write(buffer, 0, buffer.length);
@@ -243,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
         long i = 1;
         boolean hasCompleted = false;
         while (!hasCompleted) {
-            execButton.setText(String.valueOf(i));
+            fileSelectButton.setText(String.valueOf(i));
             String fileSegmentPath = String.format("%s%s.fsm.%d", segmentDir, outputName, i);
             File fileSegment =  new File(fileSegmentPath);
             if (fileSegment.exists()) {
