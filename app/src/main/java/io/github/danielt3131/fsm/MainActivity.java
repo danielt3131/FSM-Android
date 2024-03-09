@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -15,27 +16,24 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
-    Button execButton;
+    Button execButton, startButton;
     Switch toggleSwitch;
     final int READ_WRITE_PERM_REQ = 15;
-    final int MERGE_FILE_SRC = 10;
-    final int MERGE_FILE_DEST = 11;
-    final int SPLIT_FILE_SRC = 12;
-    final int SPLIT_FILE_DEST = 13;
+    final int INPUT_FILE = 10;
+    final String SAVE_LOCATION = "/storage/emulated/0/Documents/FSM/";
     int segmentSize = 0;
+    int MAX_BUFFFERSIZE = 1024 * 1024 * 250;
 
     boolean hasRW = false;
 
@@ -50,12 +48,14 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-        execButton = findViewById(R.id.execButton);
+        execButton = findViewById(R.id.fileSelector);
         toggleSwitch = findViewById(R.id.toggleSwitch);
+        startButton = findViewById(R.id.startButton);
         inputSegmentSize = findViewById(R.id.segmentSize);
         execButton.setOnClickListener(execButtonView);
         toggleSwitch.setOnCheckedChangeListener(toggleSwitchListener);
         inputSegmentSize.setOnClickListener(getSegmentSize);
+        startButton.setOnClickListener(startButtonView);
 
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -78,8 +78,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
-
+    boolean gotInputPath = false;
     boolean merged = false;
     boolean split = false;
 
@@ -87,6 +86,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+            if (split && gotInputPath && (inputSegmentSize.getText().length() > 0)) {
+                execButton.setText("Press the start button to begin");
+            }
         }
     };
 
@@ -94,19 +96,70 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             execButton.setText(String.valueOf(segmentSize));
-            if (split && segmentSize > 0) {
-                splitFileSrc(v);
-                splitFileDestDir(v);
+            // Create an input stream
+            getInputFileURI();
+            File saveDir = new File(SAVE_LOCATION);
+            if (!saveDir.exists()) {
+                saveDir.mkdir();
             }
-            if (merged) {
-                if (mergeFileSrcDir(v)) {
-                    mergeFileDest(v);
-                }
-
+            if (split && inputSegmentSize.getText().length() == 0) {
+                execButton.setText("Enter segment size in bytes");
+            } else {
+                execButton.setText("Press the start button to begin");
             }
         }
     };
-    InputStream inputFileStream;
+
+    View.OnClickListener startButtonView = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Toast toast = new Toast(MainActivity.this);
+            if (merged) {
+                try {
+                    mergeFile();
+                    toast.setText("The operation of merge file completed");
+                    toast.show();
+                } catch (IOException e) {
+                    toast.setText("There was an error " + e);
+                    toast.show();
+                }
+            } else if (split) {
+
+                try {
+                    if (inputSegmentSize.getText().length() == 0) {
+                        toast.setText("Enter segment size in bytes");
+                        toast.show();
+                    } else {
+                        segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+                        if (segmentSize == 0) {
+                            toast.setText("Enter segment size in bytes");
+                            toast.show();
+                        } else {
+                            Log.d("Segment Size", String.valueOf(segmentSize));
+                            splitFile();
+                            toast.setText("The operation of split file completed");
+                            toast.show();
+                        }
+                    }
+                } catch (IOException e) {
+                    toast.setText("There was an error " + e);
+                    toast.show();
+                }
+            } else {
+                toast.setText("No mode selected");
+                toast.show();
+            }
+        }
+    };
+
+    public void getInputFileURI() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.setType("*/*");
+        startActivityForResult(intent, INPUT_FILE);
+    }
+
+    String inputFilePath = "";
+    String inputFileName = "";
     CompoundButton.OnCheckedChangeListener toggleSwitchListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -122,80 +175,89 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    public boolean mergeFileSrcDir (View view) {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        startActivityForResult(intent, MERGE_FILE_SRC);
-        return true;
-    }
-
-    public void mergeFileDest (View view) {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        startActivityForResult(intent, MERGE_FILE_DEST);
-    }
-
-    public void splitFileSrc (View view) {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        startActivityForResult(intent, SPLIT_FILE_SRC);
-    }
-
-    public void splitFileDestDir (View view) {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        startActivityForResult(intent, SPLIT_FILE_DEST);
-    }
-
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == Activity.RESULT_OK && requestCode == MERGE_FILE_SRC) {
+        if (resultCode == Activity.RESULT_OK && requestCode == INPUT_FILE) {
             if (data != null) {
                 Uri uri = data.getData();
-                inputFile = new File(data.getData().getPath());
-                System.out.println(inputFile.getPath());
-                if (uri != null) {
-                    try {
-                        inputStream = getContentResolver().openInputStream(uri);
-                    } catch (FileNotFoundException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
+                inputFileName = uri.getPath().substring(uri.getPath().lastIndexOf("/") + 1);
+                inputFilePath = "/storage/emulated/0/" + uri.getPath().substring(uri.getPath().lastIndexOf(":") + 1);   // Gets absolute file path
+                gotInputPath = true;
             }
         }
-        if (resultCode == Activity.RESULT_OK && requestCode == MERGE_FILE_DEST) {
-            if (data != null) {
-                Uri uri = data.getData();
-                if (uri != null) {
-                    try {
-                        outputStream = getContentResolver().openOutputStream(uri);
-                    } catch (FileNotFoundException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
+    }
+
+
+    public void splitFile() throws IOException {
+        File inputFile = new File(inputFilePath);
+        long numberOfSegments = inputFile.length() / segmentSize;
+        long remainderSegmentSize = inputFile.length() % segmentSize;
+        byte[] buffer;
+        boolean maxed = false;
+        if (segmentSize < MAX_BUFFFERSIZE) {
+            buffer = new byte[segmentSize];
+        } else {
+            buffer = new byte[MAX_BUFFFERSIZE];
+            maxed = true;
+        }
+        FileInputStream fileInputStream = new FileInputStream(inputFile);
+        long i;
+        startButton.setText("Started Split File");
+        Log.d("Split File", "Started Split File");
+        execButton.setText(String.valueOf(buffer.length));
+        inputSegmentSize.setText(String.valueOf(numberOfSegments) + " | " + String.valueOf(remainderSegmentSize));
+        for (i = 0; i < numberOfSegments; i++) {
+            fileInputStream.read(buffer, 0, buffer.length);
+            Log.e("FileRead", "Read File");
+            String outputName = String.format("%s.fsm.%d", inputFileName, i + 1);
+            execButton.setText(String.valueOf(i + 1));
+            String outputFilePath = SAVE_LOCATION + outputName;
+            FileOutputStream outputStream = new FileOutputStream(outputFilePath);
+            outputStream.write(buffer, 0, buffer.length);
+            Log.d("FileWrite", "Wrote segment");
+            outputStream.close();
+        }
+        if (remainderSegmentSize != 0) {
+            fileInputStream.read(buffer,0, (int) remainderSegmentSize);
+            String outputName = String.format("%s.fsm.%d", inputFileName, i + 1);
+            String outputFilePath = SAVE_LOCATION + outputName;
+            FileOutputStream outputStream = new FileOutputStream(outputFilePath);
+            outputStream.write(buffer, 0, (int) remainderSegmentSize);
+            outputStream.close();
+        }
+        fileInputStream.close();
+    }
+
+    public void mergeFile() throws IOException {
+        String outputName = inputFileName.substring(0, inputFileName.lastIndexOf(".fsm"));
+        String segmentDir = inputFilePath.substring(0, inputFilePath.lastIndexOf(outputName));
+        //execButton.setText(segmentDir);
+        FileOutputStream outputStream = new FileOutputStream(SAVE_LOCATION + outputName);
+
+        // Calculate segment size for buffer allocation
+        File fileSegmentSize = new File(segmentDir + outputName + ".fsm.1");
+        long segmentSize = fileSegmentSize.length();
+        byte[] buffer = new byte[(int) segmentSize];
+
+        long i = 1;
+        boolean hasCompleted = false;
+        while (!hasCompleted) {
+            execButton.setText(String.valueOf(i));
+            String fileSegmentPath = String.format("%s%s.fsm.%d", segmentDir, outputName, i);
+            File fileSegment =  new File(fileSegmentPath);
+            if (fileSegment.exists()) {
+                FileInputStream fileInputStream = new FileInputStream(fileSegment);
+                int indivSegmentSize = (int) fileSegment.length();
+                fileInputStream.read(buffer, 0, indivSegmentSize);
+                outputStream.write(buffer, 0, indivSegmentSize);
+                fileInputStream.close();
+                i++;
+            } else {
+                hasCompleted = true;
             }
         }
-        if (resultCode == Activity.RESULT_OK && requestCode == SPLIT_FILE_SRC) {
-            if (data != null) {
-                Uri uri = data.getData();
-                if (uri != null) {
-                    try {
-                        inputStream = getContentResolver().openInputStream(uri);
-                    } catch (FileNotFoundException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-        }
-        if (resultCode == Activity.RESULT_OK && requestCode == SPLIT_FILE_DEST) {
-            if (data != null) {
-                Uri uri = data.getData();
-                if (uri != null) {
-                    try {
-                        outputStream = getContentResolver().openOutputStream(uri);
-                    } catch (FileNotFoundException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-        }
+        outputStream.close();
     }
 
 }
