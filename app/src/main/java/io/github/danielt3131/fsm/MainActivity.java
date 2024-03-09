@@ -2,6 +2,8 @@ package io.github.danielt3131.fsm;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -48,6 +50,13 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        // Force portrat on phones
+        int screenSize = getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK;
+        if (screenSize == Configuration.SCREENLAYOUT_SIZE_SMALL || screenSize == Configuration.SCREENLAYOUT_SIZE_NORMAL) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        }
+
         fileSelectButton = findViewById(R.id.fileSelector);
         toggleSwitch = findViewById(R.id.toggleSwitch);
         startButton = findViewById(R.id.startButton);
@@ -112,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             Toast toast = new Toast(MainActivity.this);
-            if (merged) {
+            if (merged && gotInputPath) {
                 try {
                     mergeFile();
                     toast.setText("The operation of merge file completed");
@@ -121,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
                     toast.setText("There was an error " + e);
                     toast.show();
                 }
-            } else if (split) {
+            } else if (split && gotInputPath) {
                 try {
                     if (inputSegmentSize.getText().length() == 0) {
                         toast.setText("Enter segment size in bytes");
