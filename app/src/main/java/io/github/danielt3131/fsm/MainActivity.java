@@ -137,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             inputSegmentSize.setVisibility(View.VISIBLE);
-            inputSegmentSize.setHint("Enter in the segment size in bytes");
+            inputSegmentSize.setHint("Segment size in bytes");
         }
     };
 
@@ -369,7 +369,9 @@ public class MainActivity extends AppCompatActivity {
         outputStream.close();
     }
 
-
+    /**
+     * Method to ensure the necessary permissions are granted
+     */
     public void getPermissions() {
         // Request all files permission for ANDROID 11+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
