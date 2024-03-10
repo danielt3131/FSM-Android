@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     final String SAVE_LOCATION = "/storage/emulated/0/Documents/FSM/";
     int segmentSize = 0;
     int MAX_BUFFFERSIZE = 1024 * 1024 * 250;
-
+    final String FILE_SELECT = "File Select";
     boolean hasRW = false;
 
     TextView inputSegmentSize;
@@ -90,6 +90,9 @@ public class MainActivity extends AppCompatActivity {
     boolean merged = true;
     boolean split = false;
 
+    /**
+     * Segment size text entry listener
+     */
     View.OnClickListener getSegmentSize = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -100,6 +103,9 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    /**
+     * File select button listener
+     */
     View.OnClickListener fileSelectView = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -116,6 +122,11 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+
+    /**
+     * Start button listener
+     */
     View.OnClickListener startButtonView = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -135,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
                         toast.setText("Enter segment size in bytes");
                         toast.show();
                     } else {
-                        segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+                        //segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
                         if (segmentSize == 0) {
                             toast.setText("Enter segment size in bytes");
                             toast.show();
@@ -157,6 +168,9 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    /**
+     * Method to create intent to summon the system file picker to get an input file name and path
+     */
     public void getInputFileURI() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("*/*");
@@ -165,6 +179,10 @@ public class MainActivity extends AppCompatActivity {
 
     String inputFilePath = "";
     String inputFileName = "";
+
+    /**
+     * Mode toggle switch listener
+     */
     CompoundButton.OnCheckedChangeListener toggleSwitchListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -174,9 +192,11 @@ public class MainActivity extends AppCompatActivity {
                 inputSegmentSize.setHint("Segment size in bytes");
                 split = true;
                 merged = false;
+                fileSelectButton.setText(FILE_SELECT);
             } else {
                 toggleSwitch.setText("Merge mode");
                 inputSegmentSize.setHint("");
+                fileSelectButton.setText(FILE_SELECT);
                 inputSegmentSize.setVisibility(View.INVISIBLE);
                 split = false;
                 merged = true;
@@ -184,20 +204,36 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-
+    /**
+     *
+     * @param requestCode The integer request code originally supplied to
+     *                    startActivityForResult(), allowing you to identify who this
+     *                    result came from.
+     * @param resultCode The integer result code returned by the child activity
+     *                   through its setResult().
+     * @param data An Intent, which can return result data to the caller
+     *               (various data can be attached to Intent "extras").
+     *
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK && requestCode == INPUT_FILE) {
             if (data != null) {
                 Uri uri = data.getData();
-                inputFileName = uri.getPath().substring(uri.getPath().lastIndexOf("/") + 1);
-                inputFilePath = "/storage/emulated/0/" + uri.getPath().substring(uri.getPath().lastIndexOf(":") + 1);   // Gets absolute file path
+                inputFileName = uri.getPath().substring(uri.getPath().lastIndexOf("/") + 1);    // Gets the input file name
+                // Gets absolute file path from th URI assuming it's internal storage not external/sd card storage
+                inputFilePath = "/storage/emulated/0/" + uri.getPath().substring(uri.getPath().lastIndexOf(":") + 1);
                 gotInputPath = true;
             }
+        } else {
+            fileSelectButton.setText(FILE_SELECT);  // Resets the file select button text
         }
     }
 
-
+    /**
+     * Method to split a file into n segments
+     * @throws IOException
+     */
     public void splitFile() throws IOException {
         File inputFile = new File(inputFilePath);
         long numberOfSegments = inputFile.length() / segmentSize;
@@ -211,6 +247,7 @@ public class MainActivity extends AppCompatActivity {
         FileInputStream fileInputStream = new FileInputStream(inputFile);
         long i;
         Log.d("Split File", "Started Split File");
+
         for (i = 1; i <= numberOfSegments; i++) {
             fileInputStream.read(buffer, 0, buffer.length);
             Log.d("FileRead", "Read File");
@@ -221,6 +258,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d("FileWrite", "Wrote segment");
             outputStream.close();
         }
+
         if (remainderSegmentSize != 0) {
             fileInputStream.read(buffer,0, (int) remainderSegmentSize);
             String outputName = String.format("%s.fsm.%d", inputFileName, i + 1);
@@ -229,10 +267,16 @@ public class MainActivity extends AppCompatActivity {
             outputStream.write(buffer, 0, (int) remainderSegmentSize);
             outputStream.close();
         }
+        // Close the input stream
         fileInputStream.close();
         inputSegmentSize.setText("");   // Reset the input segment size
     }
 
+
+    /**
+     * Method to merge a file
+     * @throws IOException
+     */
     public void mergeFile() throws IOException {
         String outputName = inputFileName.substring(0, inputFileName.lastIndexOf(".fsm"));
         String segmentDir = inputFilePath.substring(0, inputFilePath.lastIndexOf(outputName));
@@ -261,6 +305,7 @@ public class MainActivity extends AppCompatActivity {
             }
             fileSegment.delete();   // Remove segment from storage / auto cleanup
         }
+        // Close the output stream
         outputStream.close();
     }
 
