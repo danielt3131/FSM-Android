@@ -23,7 +23,6 @@ import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.PermissionChecker;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -34,9 +33,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
-    Button fileSelectButton, startButton;
+    Button fileSelectButton, startButton, textPreset, emailPreset, customSize;
     Switch toggleSwitch;
     final int READ_WRITE_PERM_REQ = 15;
+    final int SEGMENT_SIZE_EMAIL_PRESET = 20000000; // 20MB
+    final int SEGMENT_SIZE_MMS_PRESET = 1000000;
     final int INPUT_FILE = 10;
     final String SAVE_LOCATION = "/storage/emulated/0/Documents/FSM/";
     int segmentSize = 0;
@@ -66,10 +67,17 @@ public class MainActivity extends AppCompatActivity {
         toggleSwitch = findViewById(R.id.toggleSwitch);
         startButton = findViewById(R.id.startButton);
         inputSegmentSize = findViewById(R.id.segmentSize);
+        textPreset = findViewById(R.id.mmsPreset);
+        emailPreset = findViewById(R.id.emailPreset);
+        customSize = findViewById(R.id.customMode);
+        // Set listeners
         fileSelectButton.setOnClickListener(fileSelectView);
         toggleSwitch.setOnCheckedChangeListener(toggleSwitchListener);
         inputSegmentSize.setOnClickListener(getSegmentSize);
         startButton.setOnClickListener(startButtonView);
+        textPreset.setOnClickListener(textMsgPresetListener);
+        emailPreset.setOnClickListener(emailPresetListener);
+        customSize.setOnClickListener(customSizeListener);
 
         // Request all files permission for ANDROID 11+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -106,6 +114,44 @@ public class MainActivity extends AppCompatActivity {
     boolean merged = true;
     boolean split = false;
 
+
+    /**
+     * Preset size listeners
+     */
+    View.OnClickListener textMsgPresetListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            segmentSize = SEGMENT_SIZE_MMS_PRESET;
+            inputSegmentSize.setVisibility(View.INVISIBLE);
+            Toast.makeText(MainActivity.this, "Using text message preset | 1MB", Toast.LENGTH_SHORT).show();
+            if (gotInputPath) {
+                fileSelectButton.setText("Press the start button to begin");
+            }
+        }
+    };
+
+    View.OnClickListener emailPresetListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            segmentSize = SEGMENT_SIZE_EMAIL_PRESET;
+            inputSegmentSize.setVisibility(View.INVISIBLE);
+            if (gotInputPath) {
+                fileSelectButton.setText("Press the start button to begin");
+            }
+            Toast.makeText(MainActivity.this, "Using email preset | 20MB", Toast.LENGTH_SHORT).show();
+        }
+    };
+
+    View.OnClickListener customSizeListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            inputSegmentSize.setVisibility(View.VISIBLE);
+            inputSegmentSize.setHint("Enter in the segment size in bytes");
+        }
+    };
+
+
+
     /**
      * Segment size text entry listener
      */
@@ -131,8 +177,8 @@ public class MainActivity extends AppCompatActivity {
             if (!saveDir.exists()) {
                 saveDir.mkdir();
             }
-            if (split && inputSegmentSize.getText().length() == 0) {
-                fileSelectButton.setText("Enter segment size in bytes");
+            if (split && segmentSize == 0) {
+                fileSelectButton.setText("Select a preset or use custom mode");
             } else {
                 fileSelectButton.setText("Press the start button to begin");
             }
@@ -150,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
             if (merged && gotInputPath) {
                 try {
                     mergeFile();
-                    toast.setText("The operation of merge file completed");
+                    toast.setText("The operation of merge file completed. The output is at Documents/FSM and the file segments were deleted");
                     toast.show();
                 } catch (IOException e) {
                     toast.setText("There was an error " + e);
@@ -158,27 +204,24 @@ public class MainActivity extends AppCompatActivity {
                 }
             } else if (split && gotInputPath) {
                 try {
-                    if (inputSegmentSize.getText().length() == 0) {
-                        toast.setText("Enter segment size in bytes");
+                    //segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+                    if (segmentSize == 0) {
+                        //toast.setText("Enter segment size in bytes");
+                        //toast.show();
+                        toast.setText("Choose a preset or custom");
                         toast.show();
                     } else {
-                        //segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
-                        if (segmentSize == 0) {
-                            toast.setText("Enter segment size in bytes");
-                            toast.show();
-                        } else {
-                            Log.d("Segment Size", String.valueOf(segmentSize));
-                            splitFile();
-                            toast.setText("The operation of split file completed");
-                            toast.show();
-                        }
+                        Log.d("Segment Size", String.valueOf(segmentSize));
+                        splitFile();
+                        toast.setText("The operation of split file completed. The output is at Documents/FSM");
+                        toast.show();
                     }
                 } catch (IOException e) {
                     toast.setText("There was an error " + e);
                     toast.show();
                 }
             } else {
-                toast.setText("No mode selected");
+                toast.setText("No mode or file selected");
                 toast.show();
             }
         }
@@ -204,16 +247,22 @@ public class MainActivity extends AppCompatActivity {
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
             if (isChecked) {
                 toggleSwitch.setText("Split mode");
-                inputSegmentSize.setVisibility(View.VISIBLE);
-                inputSegmentSize.setHint("Segment size in bytes");
+                //inputSegmentSize.setVisibility(View.VISIBLE);
+                //inputSegmentSize.setHint("Segment size in bytes");
+                textPreset.setVisibility(View.VISIBLE);
+                emailPreset.setVisibility(View.VISIBLE);
+                customSize.setVisibility(View.VISIBLE);
                 split = true;
                 merged = false;
                 fileSelectButton.setText(FILE_SELECT);
             } else {
                 toggleSwitch.setText("Merge mode");
-                inputSegmentSize.setHint("");
+                //inputSegmentSize.setHint("");
                 fileSelectButton.setText(FILE_SELECT);
                 inputSegmentSize.setVisibility(View.INVISIBLE);
+                textPreset.setVisibility(View.INVISIBLE);
+                emailPreset.setVisibility(View.INVISIBLE);
+                customSize.setVisibility(View.INVISIBLE);
                 split = false;
                 merged = true;
             }
@@ -277,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (remainderSegmentSize != 0) {
             fileInputStream.read(buffer,0, (int) remainderSegmentSize);
-            String outputName = String.format("%s.fsm.%d", inputFileName, i + 1);
+            String outputName = String.format("%s.fsm.%d", inputFileName, i);
             String outputFilePath = SAVE_LOCATION + outputName;
             FileOutputStream outputStream = new FileOutputStream(outputFilePath);
             outputStream.write(buffer, 0, (int) remainderSegmentSize);

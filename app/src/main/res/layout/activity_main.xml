@@ -18,8 +18,10 @@
         android:text="File Select"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.565"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.515" />
 
     <Switch
         android:id="@+id/toggleSwitch"
@@ -53,16 +55,57 @@
 
     <Button
         android:id="@+id/startButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="159dp"
-        android:layout_marginTop="23dp"
-        android:layout_marginEnd="162dp"
-        android:layout_marginBottom="50dp"
+        android:layout_width="110dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="50dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="50dp"
         android:text="Start"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.477"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/fileSelector" />
+
+    <Button
+        android:id="@+id/emailPreset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="44dp"
+        android:layout_marginBottom="8dp"
+        android:text="Email"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@+id/fileSelector"
+        app:layout_constraintEnd_toStartOf="@+id/mmsPreset"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/toggleSwitch" />
+
+    <Button
+        android:id="@+id/mmsPreset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="19dp"
+        android:layout_marginTop="21dp"
+        android:layout_marginBottom="30dp"
+        android:text="Text MSG"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@+id/fileSelector"
+        app:layout_constraintEnd_toStartOf="@+id/customMode"
+        app:layout_constraintStart_toEndOf="@+id/emailPreset"
+        app:layout_constraintTop_toBottomOf="@+id/toggleSwitch"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/customMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="19dp"
+        android:layout_marginEnd="33dp"
+        android:layout_marginBottom="8dp"
+        android:text="Custom"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@+id/fileSelector"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/mmsPreset"
+        app:layout_constraintTop_toBottomOf="@+id/toggleSwitch" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
