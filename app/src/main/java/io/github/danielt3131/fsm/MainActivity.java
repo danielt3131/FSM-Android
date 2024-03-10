@@ -73,6 +73,8 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        // Checking and getting permissions
+        getPermissions();
 
         // Force portrat on phones
         int screenSize = getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK;
@@ -96,40 +98,12 @@ public class MainActivity extends AppCompatActivity {
         emailPreset.setOnClickListener(emailPresetListener);
         customSize.setOnClickListener(customSizeListener);
 
-        // Request all files permission for ANDROID 11+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (Environment.isExternalStorageManager()) {
-                hasRW = true;
-            } else {
-                Toast toast = new Toast(this);
-                toast.setText("Need all files permission to continue");
-                toast.show();
-                // Pull up settings
-                try {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                    startActivity(intent);
-                } catch (Exception e) {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                    startActivity(intent);
-                }
-            }
-        }
-        // Android 10 and below
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(MainActivity.this, new String[] {android.Manifest.permission.READ_EXTERNAL_STORAGE}, 19);
-            }
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(MainActivity.this, new String[] {android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 20);
-            }
-        }
-
-
     }
 
     boolean gotInputPath = false;
     boolean merged = true;
     boolean split = false;
+
 
 
     /**
@@ -210,36 +184,40 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             Toast toast = new Toast(MainActivity.this);
-            if (merged && gotInputPath) {
-                try {
-                    mergeFile();
-                    toast.setText("The operation of merge file completed. The output is at Documents/FSM and the file segments were deleted");
-                    toast.show();
-                } catch (IOException e) {
-                    toast.setText("There was an error " + e);
-                    toast.show();
-                }
-            } else if (split && gotInputPath) {
-                try {
-                    //segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
-                    if (segmentSize == 0) {
-                        //toast.setText("Enter segment size in bytes");
-                        //toast.show();
-                        toast.setText("Choose a preset or custom");
+            if (!hasRW) {
+                getPermissions(); // Need permissions
+            } else {
+                if (merged && gotInputPath) {
+                    try {
+                        mergeFile();
+                        toast.setText("The operation of merge file completed. The output is at Documents/FSM and the file segments were deleted");
                         toast.show();
-                    } else {
-                        Log.d("Segment Size", String.valueOf(segmentSize));
-                        splitFile();
-                        toast.setText("The operation of split file completed. The output is at Documents/FSM");
+                    } catch (IOException e) {
+                        toast.setText("There was an error " + e);
                         toast.show();
                     }
-                } catch (IOException e) {
-                    toast.setText("There was an error " + e);
+                } else if (split && gotInputPath) {
+                    try {
+                        //segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+                        if (segmentSize == 0) {
+                            //toast.setText("Enter segment size in bytes");
+                            //toast.show();
+                            toast.setText("Choose a preset or custom");
+                            toast.show();
+                        } else {
+                            Log.d("Segment Size", String.valueOf(segmentSize));
+                            splitFile();
+                            toast.setText("The operation of split file completed. The output is at Documents/FSM");
+                            toast.show();
+                        }
+                    } catch (IOException e) {
+                        toast.setText("There was an error " + e);
+                        toast.show();
+                    }
+                } else {
+                    toast.setText("No mode or file selected");
                     toast.show();
                 }
-            } else {
-                toast.setText("No mode or file selected");
-                toast.show();
             }
         }
     };
@@ -389,6 +367,38 @@ public class MainActivity extends AppCompatActivity {
         }
         // Close the output stream
         outputStream.close();
+    }
+
+
+    public void getPermissions() {
+        // Request all files permission for ANDROID 11+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (Environment.isExternalStorageManager()) {
+                hasRW = true;
+            } else {
+                Toast toast = new Toast(this);
+                toast.setText("Need all files permission to continue");
+                toast.show();
+                // Pull up settings
+                try {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                    startActivity(intent);
+                } catch (Exception e) {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                    startActivity(intent);
+                }
+            }
+        }
+        // Android 10 and below
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(MainActivity.this, new String[] {android.Manifest.permission.READ_EXTERNAL_STORAGE}, 19);
+            } else if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(MainActivity.this, new String[] {android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 20);
+            } else {
+                hasRW = true;
+            }
+        }
     }
 
 }
