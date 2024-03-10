@@ -103,7 +103,6 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener fileSelectView = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            inputSegmentSize.setText("");
             // Create an input stream
             getInputFileURI();
             File saveDir = new File(SAVE_LOCATION);
@@ -204,20 +203,18 @@ public class MainActivity extends AppCompatActivity {
         long numberOfSegments = inputFile.length() / segmentSize;
         long remainderSegmentSize = inputFile.length() % segmentSize;
         byte[] buffer;
-        boolean maxed = false;
-        if (segmentSize < MAX_BUFFFERSIZE) {
+        if (segmentSize <= MAX_BUFFFERSIZE) {
             buffer = new byte[segmentSize];
         } else {
-            buffer = new byte[MAX_BUFFFERSIZE];
-            maxed = true;
+            throw new IOException("Segment size exceeded 250MiB");
         }
         FileInputStream fileInputStream = new FileInputStream(inputFile);
         long i;
         Log.d("Split File", "Started Split File");
-        for (i = 0; i < numberOfSegments; i++) {
+        for (i = 1; i <= numberOfSegments; i++) {
             fileInputStream.read(buffer, 0, buffer.length);
             Log.d("FileRead", "Read File");
-            String outputName = String.format("%s.fsm.%d", inputFileName, i + 1);
+            String outputName = String.format("%s.fsm.%d", inputFileName, i);
             String outputFilePath = SAVE_LOCATION + outputName;
             FileOutputStream outputStream = new FileOutputStream(outputFilePath);
             outputStream.write(buffer, 0, buffer.length);
@@ -233,6 +230,7 @@ public class MainActivity extends AppCompatActivity {
             outputStream.close();
         }
         fileInputStream.close();
+        inputSegmentSize.setText("");   // Reset the input segment size
     }
 
     public void mergeFile() throws IOException {
