@@ -49,6 +49,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
     Button fileSelectButton, startButton, textPreset, emailPreset, customSize;
@@ -106,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
     boolean merged = true;
     boolean split = false;
     boolean sendMMS = false;
+    ArrayList<String> mmsSegmentFilePaths;
 
 
 
@@ -121,9 +123,8 @@ public class MainActivity extends AppCompatActivity {
             if (gotInputPath) {
                 fileSelectButton.setText("Press the start button to begin");
             }
-            sendMMS = true;
             inputPhoneNumber.setVisibility(View.VISIBLE);
-
+            mmsSegmentFilePaths = new ArrayList<String>();
         }
     };
     String phoneNumber = "";
@@ -132,6 +133,9 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             if (inputPhoneNumber.toString().length() != 0) {
                 phoneNumber = inputPhoneNumber.getText().toString();
+                sendMMS = true;
+            } else {
+                sendMMS = false;
             }
         }
     };
@@ -146,6 +150,7 @@ public class MainActivity extends AppCompatActivity {
             }
             Toast.makeText(MainActivity.this, "Using email preset | 20MB", Toast.LENGTH_SHORT).show();
             sendMMS = false;
+            inputPhoneNumber.setVisibility(View.INVISIBLE);
         }
     };
 
@@ -155,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
             inputSegmentSize.setVisibility(View.VISIBLE);
             inputSegmentSize.setHint("Segment size in bytes");
             sendMMS = false;
+            inputPhoneNumber.setVisibility(View.INVISIBLE);
         }
     };
 
@@ -229,6 +235,10 @@ public class MainActivity extends AppCompatActivity {
                             splitFile();
                             toast.setText("The operation of split file completed. The output is at Documents/FSM");
                             toast.show();
+
+                            if (sendMMS) {
+                                sendMmsSegment();
+                            }
                         }
                     } catch (IOException e) {
                         toast.setText("There was an error " + e);
@@ -273,6 +283,7 @@ public class MainActivity extends AppCompatActivity {
                 emailPreset.setVisibility(View.VISIBLE);
                 customSize.setVisibility(View.VISIBLE);
                 split = true;
+                inputPhoneNumber.setVisibility(View.INVISIBLE);
                 merged = false;
                 fileSelectButton.setText(FILE_SELECT);
             } else {
@@ -312,7 +323,8 @@ public class MainActivity extends AppCompatActivity {
                 gotInputPath = true;
             }
         } else if (resultCode == Activity.RESULT_OK && requestCode == 25) {
-            notify();
+            Log.d("MMS", "Called share menu");
+            //notify();
         } else {
             fileSelectButton.setText(FILE_SELECT);  // Resets the file select button text
         }
@@ -346,8 +358,8 @@ public class MainActivity extends AppCompatActivity {
             Log.d("FileWrite", "Wrote segment");
             outputStream.close();
             if (sendMMS) {
-                sendMmsSegment(outputFilePath);
-                wait();
+                mmsSegmentFilePaths.add(outputFilePath);
+                //wait();
             }
         }
 
@@ -359,7 +371,7 @@ public class MainActivity extends AppCompatActivity {
             outputStream.write(buffer, 0, (int) remainderSegmentSize);
             outputStream.close();
             if (sendMMS) {
-                sendMmsSegment(outputFilePath);
+                mmsSegmentFilePaths.add(outputFilePath);
             }
         }
         // Close the input stream
@@ -367,14 +379,15 @@ public class MainActivity extends AppCompatActivity {
         inputSegmentSize.setText("");   // Reset the input segment size
     }
 
-    public void sendMmsSegment(String filepath) {
-        Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.putExtra("address", phoneNumber);
-        Log.d("MMS-SEND", "Sent segment to " + phoneNumber);
-        intent.putExtra(Intent.EXTRA_STREAM,  FileProvider.getUriForFile(MainActivity.this, MainActivity.this.getPackageName() + ".provider", new File(filepath)));
-        intent.setType("image/png");
-        startActivityForResult(intent, 25);
-
+    public void sendMmsSegment() {
+        for (String filepath: mmsSegmentFilePaths) {
+            Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.putExtra("address", phoneNumber);
+            Log.d("MMS-SEND", "Sent segment to " + phoneNumber);
+            intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(MainActivity.this, MainActivity.this.getPackageName() + ".provider", new File(filepath)));
+            intent.setType("*/*");
+            startActivityForResult(intent, 25);
+        }
     }
 
 
