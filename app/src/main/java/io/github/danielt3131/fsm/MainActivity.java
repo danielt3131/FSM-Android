@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
     final String FILE_SELECT = "File Select";
     boolean hasRW = false;
 
-    TextView inputSegmentSize;
+    TextView inputSegmentSize, inputPhoneNumber;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
         textPreset = findViewById(R.id.mmsPreset);
         emailPreset = findViewById(R.id.emailPreset);
         customSize = findViewById(R.id.customMode);
+        inputPhoneNumber = findViewById(R.id.inputPhoneNumber);
         // Set listeners
         fileSelectButton.setOnClickListener(fileSelectView);
         toggleSwitch.setOnCheckedChangeListener(toggleSwitchListener);
@@ -98,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
         textPreset.setOnClickListener(textMsgPresetListener);
         emailPreset.setOnClickListener(emailPresetListener);
         customSize.setOnClickListener(customSizeListener);
-
+        inputPhoneNumber.setOnClickListener(getPhoneNumber);
     }
 
     boolean gotInputPath = false;
@@ -121,6 +122,17 @@ public class MainActivity extends AppCompatActivity {
                 fileSelectButton.setText("Press the start button to begin");
             }
             sendMMS = true;
+            inputPhoneNumber.setVisibility(View.VISIBLE);
+
+        }
+    };
+    String phoneNumber = "";
+    View.OnClickListener getPhoneNumber = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (inputPhoneNumber.toString().length() != 0) {
+                phoneNumber = inputPhoneNumber.getText().toString();
+            }
         }
     };
 
@@ -154,7 +166,9 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener getSegmentSize = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+            if (inputSegmentSize.toString().length() != 0) {
+                segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+            }
             if (split && gotInputPath && (inputSegmentSize.getText().length() > 0)) {
                 fileSelectButton.setText("Press the start button to begin");
             }
@@ -211,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
                             toast.show();
                         } else {
                             Log.d("Segment Size", String.valueOf(segmentSize));
+                            Log.d("Phone number", phoneNumber);
                             splitFile();
                             toast.setText("The operation of split file completed. The output is at Documents/FSM");
                             toast.show();
@@ -218,6 +233,8 @@ public class MainActivity extends AppCompatActivity {
                     } catch (IOException e) {
                         toast.setText("There was an error " + e);
                         toast.show();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
                 } else if (gotInputPath) {
                     toast.setText("No mode selected");
@@ -294,6 +311,8 @@ public class MainActivity extends AppCompatActivity {
                 inputFilePath = "/storage/emulated/0/" + uri.getPath().substring(uri.getPath().lastIndexOf(":") + 1);
                 gotInputPath = true;
             }
+        } else if (resultCode == Activity.RESULT_OK && requestCode == 25) {
+            notify();
         } else {
             fileSelectButton.setText(FILE_SELECT);  // Resets the file select button text
         }
@@ -303,7 +322,7 @@ public class MainActivity extends AppCompatActivity {
      * Method to split a file into n segments
      * @throws IOException
      */
-    public void splitFile() throws IOException {
+    public void splitFile() throws IOException, InterruptedException {
         File inputFile = new File(inputFilePath);
         long numberOfSegments = inputFile.length() / segmentSize;
         long remainderSegmentSize = inputFile.length() % segmentSize;
@@ -327,7 +346,8 @@ public class MainActivity extends AppCompatActivity {
             Log.d("FileWrite", "Wrote segment");
             outputStream.close();
             if (sendMMS) {
-                //sendMmsSegment(outputFilePath);
+                sendMmsSegment(outputFilePath);
+                wait();
             }
         }
 
@@ -339,7 +359,7 @@ public class MainActivity extends AppCompatActivity {
             outputStream.write(buffer, 0, (int) remainderSegmentSize);
             outputStream.close();
             if (sendMMS) {
-                //sendMmsSegment(outputFilePath);
+                sendMmsSegment(outputFilePath);
             }
         }
         // Close the input stream
@@ -349,10 +369,12 @@ public class MainActivity extends AppCompatActivity {
 
     public void sendMmsSegment(String filepath) {
         Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.putExtra("address", "9122897718");
+        intent.putExtra("address", phoneNumber);
+        Log.d("MMS-SEND", "Sent segment to " + phoneNumber);
         intent.putExtra(Intent.EXTRA_STREAM,  FileProvider.getUriForFile(MainActivity.this, MainActivity.this.getPackageName() + ".provider", new File(filepath)));
         intent.setType("image/png");
-        startActivity(intent);
+        startActivityForResult(intent, 25);
+
     }
 
 
