@@ -45,6 +45,9 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.klinker.android.send_message.Message;
+import com.klinker.android.send_message.Transaction;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -52,6 +55,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
+    final String[] permissionList = {Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS, Manifest.permission.INTERNET, Manifest.permission.RECEIVE_MMS, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
     Button fileSelectButton, startButton, textPreset, emailPreset, customSize;
     Switch toggleSwitch;
     //final int READ_WRITE_PERM_REQ = 15;
@@ -107,7 +111,6 @@ public class MainActivity extends AppCompatActivity {
     boolean merged = true;
     boolean split = false;
     boolean sendMMS = false;
-    ArrayList<String> mmsSegmentFilePaths;
 
 
 
@@ -124,7 +127,6 @@ public class MainActivity extends AppCompatActivity {
                 fileSelectButton.setText("Press the start button to begin");
             }
             inputPhoneNumber.setVisibility(View.VISIBLE);
-            mmsSegmentFilePaths = new ArrayList<String>();
         }
     };
     String phoneNumber = "";
@@ -235,15 +237,13 @@ public class MainActivity extends AppCompatActivity {
                             splitFile();
                             toast.setText("The operation of split file completed. The output is at Documents/FSM");
                             toast.show();
-
-                            if (sendMMS) {
-                                sendMmsSegment();
-                            }
                         }
                     } catch (IOException e) {
                         toast.setText("There was an error " + e);
                         toast.show();
                     } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 } else if (gotInputPath) {
@@ -334,7 +334,7 @@ public class MainActivity extends AppCompatActivity {
      * Method to split a file into n segments
      * @throws IOException
      */
-    public void splitFile() throws IOException, InterruptedException {
+    public void splitFile() throws Exception {
         File inputFile = new File(inputFilePath);
         long numberOfSegments = inputFile.length() / segmentSize;
         long remainderSegmentSize = inputFile.length() % segmentSize;
@@ -358,7 +358,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d("FileWrite", "Wrote segment");
             outputStream.close();
             if (sendMMS) {
-                mmsSegmentFilePaths.add(outputFilePath);
+                sendMmsSegment(buffer, outputName);
                 //wait();
             }
         }
@@ -371,7 +371,7 @@ public class MainActivity extends AppCompatActivity {
             outputStream.write(buffer, 0, (int) remainderSegmentSize);
             outputStream.close();
             if (sendMMS) {
-                mmsSegmentFilePaths.add(outputFilePath);
+                sendMmsSegment(buffer, outputName);
             }
         }
         // Close the input stream
@@ -379,15 +379,21 @@ public class MainActivity extends AppCompatActivity {
         inputSegmentSize.setText("");   // Reset the input segment size
     }
 
-    public void sendMmsSegment() {
-        for (String filepath: mmsSegmentFilePaths) {
-            Intent intent = new Intent(Intent.ACTION_SEND);
-            intent.putExtra("address", phoneNumber);
-            Log.d("MMS-SEND", "Sent segment to " + phoneNumber);
-            intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(MainActivity.this, MainActivity.this.getPackageName() + ".provider", new File(filepath)));
-            intent.setType("*/*");
-            startActivityForResult(intent, 25);
-        }
+    public void sendMmsSegment(byte[] buffer, String filename) throws Exception {
+        com.klinker.android.send_message.Settings sendSettings = new com.klinker.android.send_message.Settings();
+        sendSettings.setUseSystemSending(true);
+        Transaction transaction = new Transaction(MainActivity.this, sendSettings);
+        Message message = new Message("Segment", phoneNumber);
+        message.addMedia(buffer, "*/*", filename);
+        message.setSave(false);
+        transaction.sendNewMessage(message);
+
+//            Intent intent = new Intent(Intent.ACTION_SEND);
+//            intent.putExtra("address", phoneNumber);
+//            Log.d("MMS-SEND", "Sent segment to " + phoneNumber);
+//            intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(MainActivity.this, MainActivity.this.getPackageName() + ".provider", new File(filepath)));
+//            intent.setType("*/*");
+//            startActivityForResult(intent, 25);
     }
 
 
@@ -457,7 +463,7 @@ public class MainActivity extends AppCompatActivity {
                 hasRW = true;
             }
         }
-        ActivityCompat.requestPermissions(MainActivity.this, new String[] {Manifest.permission.SEND_SMS}, 22);
+        ActivityCompat.requestPermissions(MainActivity.this, permissionList, 22);
     }
 
 }
