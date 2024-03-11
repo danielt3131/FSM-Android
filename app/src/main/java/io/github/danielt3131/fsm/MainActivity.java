@@ -214,8 +214,11 @@ public class MainActivity extends AppCompatActivity {
                         toast.setText("There was an error " + e);
                         toast.show();
                     }
+                } else if (gotInputPath) {
+                    toast.setText("No mode selected");
+                    toast.show();
                 } else {
-                    toast.setText("No mode or file selected");
+                    toast.setText("No file selected");
                     toast.show();
                 }
             }
@@ -390,9 +393,7 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(intent);
                 }
             }
-        }
-        // Android 10 and below
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+        } else { // Android 10 and below
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(MainActivity.this, new String[] {android.Manifest.permission.READ_EXTERNAL_STORAGE}, 19);
             } else if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
