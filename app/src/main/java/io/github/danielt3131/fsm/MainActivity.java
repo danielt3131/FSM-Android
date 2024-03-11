@@ -40,6 +40,7 @@ import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -52,7 +53,7 @@ import java.io.IOException;
 public class MainActivity extends AppCompatActivity {
     Button fileSelectButton, startButton, textPreset, emailPreset, customSize;
     Switch toggleSwitch;
-    final int READ_WRITE_PERM_REQ = 15;
+    //final int READ_WRITE_PERM_REQ = 15;
     final int SEGMENT_SIZE_EMAIL_PRESET = 20000000; // 20MB
     final int SEGMENT_SIZE_MMS_PRESET = 1000000;
     final int INPUT_FILE = 10;
@@ -103,6 +104,7 @@ public class MainActivity extends AppCompatActivity {
     boolean gotInputPath = false;
     boolean merged = true;
     boolean split = false;
+    boolean sendMMS = false;
 
 
 
@@ -118,6 +120,7 @@ public class MainActivity extends AppCompatActivity {
             if (gotInputPath) {
                 fileSelectButton.setText("Press the start button to begin");
             }
+            sendMMS = true;
         }
     };
 
@@ -130,6 +133,7 @@ public class MainActivity extends AppCompatActivity {
                 fileSelectButton.setText("Press the start button to begin");
             }
             Toast.makeText(MainActivity.this, "Using email preset | 20MB", Toast.LENGTH_SHORT).show();
+            sendMMS = false;
         }
     };
 
@@ -138,6 +142,7 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             inputSegmentSize.setVisibility(View.VISIBLE);
             inputSegmentSize.setHint("Segment size in bytes");
+            sendMMS = false;
         }
     };
 
@@ -262,6 +267,7 @@ public class MainActivity extends AppCompatActivity {
                 emailPreset.setVisibility(View.INVISIBLE);
                 customSize.setVisibility(View.INVISIBLE);
                 split = false;
+                sendMMS = false;
                 merged = true;
             }
         }
@@ -320,6 +326,9 @@ public class MainActivity extends AppCompatActivity {
             outputStream.write(buffer, 0, buffer.length);
             Log.d("FileWrite", "Wrote segment");
             outputStream.close();
+            if (sendMMS) {
+                //sendMmsSegment(outputFilePath);
+            }
         }
 
         if (remainderSegmentSize != 0) {
@@ -329,10 +338,21 @@ public class MainActivity extends AppCompatActivity {
             FileOutputStream outputStream = new FileOutputStream(outputFilePath);
             outputStream.write(buffer, 0, (int) remainderSegmentSize);
             outputStream.close();
+            if (sendMMS) {
+                //sendMmsSegment(outputFilePath);
+            }
         }
         // Close the input stream
         fileInputStream.close();
         inputSegmentSize.setText("");   // Reset the input segment size
+    }
+
+    public void sendMmsSegment(String filepath) {
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.putExtra("address", "9122897718");
+        intent.putExtra(Intent.EXTRA_STREAM,  FileProvider.getUriForFile(MainActivity.this, MainActivity.this.getPackageName() + ".provider", new File(filepath)));
+        intent.setType("image/png");
+        startActivity(intent);
     }
 
 
@@ -402,6 +422,7 @@ public class MainActivity extends AppCompatActivity {
                 hasRW = true;
             }
         }
+        ActivityCompat.requestPermissions(MainActivity.this, new String[] {Manifest.permission.SEND_SMS}, 22);
     }
 
 }
