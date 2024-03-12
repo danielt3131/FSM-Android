@@ -28,6 +28,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.provider.Telephony;
+import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -55,7 +57,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
-    final String[] permissionList = {Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS, Manifest.permission.INTERNET, Manifest.permission.RECEIVE_MMS, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
+    final String[] permissionList = {Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS, Manifest.permission.INTERNET, Manifest.permission.RECEIVE_MMS,
+            Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_PRECISE_PHONE_STATE};
     Button fileSelectButton, startButton, textPreset, emailPreset, customSize;
     Switch toggleSwitch;
     //final int READ_WRITE_PERM_REQ = 15;
@@ -358,7 +361,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d("FileWrite", "Wrote segment");
             outputStream.close();
             if (sendMMS) {
-                sendMmsSegment(buffer, outputName);
+                sendMmsSegment(buffer, outputFilePath, outputName);
                 //wait();
             }
         }
@@ -371,7 +374,7 @@ public class MainActivity extends AppCompatActivity {
             outputStream.write(buffer, 0, (int) remainderSegmentSize);
             outputStream.close();
             if (sendMMS) {
-                sendMmsSegment(buffer, outputName);
+                sendMmsSegment(buffer, outputFilePath, outputName);
             }
         }
         // Close the input stream
@@ -379,14 +382,18 @@ public class MainActivity extends AppCompatActivity {
         inputSegmentSize.setText("");   // Reset the input segment size
     }
 
-    public void sendMmsSegment(byte[] buffer, String filename) throws Exception {
-        com.klinker.android.send_message.Settings sendSettings = new com.klinker.android.send_message.Settings();
-        sendSettings.setUseSystemSending(true);
-        Transaction transaction = new Transaction(MainActivity.this, sendSettings);
-        Message message = new Message("Segment", phoneNumber);
-        message.addMedia(buffer, "*/*", filename);
-        message.setSave(false);
-        transaction.sendNewMessage(message);
+    public void sendMmsSegment(byte[] buffer, String filepath, String filename) throws Exception {
+//        com.klinker.android.send_message.Settings sendSettings = new com.klinker.android.send_message.Settings();
+//        Transaction transaction = new Transaction(MainActivity.this, sendSettings);
+//        //Message message = new Message("Segment", phoneNumber);
+//        //message.addMedia(buffer, "*/*", filename);
+//        Message message = new Message("Segment", phoneNumber);
+//        message.setSave(true);
+//        message.addMedia(buffer, "application/octet-stream", filename);
+//        SmsManager smsManager = SmsManager.getSmsManagerForSubscriptionId(sendSettings.getSubscriptionId());
+//        Uri uri = FileProvider.getUriForFile(MainActivity.this, MainActivity.this.getPackageName() + ".provider", new File(filepath));
+//        smsManager.sendMultimediaMessage(MainActivity.this, uri, null, null, null);
+
 
 //            Intent intent = new Intent(Intent.ACTION_SEND);
 //            intent.putExtra("address", phoneNumber);
