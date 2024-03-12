@@ -49,6 +49,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.klinker.android.send_message.Message;
 import com.klinker.android.send_message.Transaction;
+import com.klinker.android.send_message.Utils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -382,26 +383,7 @@ public class MainActivity extends AppCompatActivity {
         inputSegmentSize.setText("");   // Reset the input segment size
     }
 
-    public void sendMmsSegment(byte[] buffer, String filepath, String filename) throws Exception {
-//        com.klinker.android.send_message.Settings sendSettings = new com.klinker.android.send_message.Settings();
-//        Transaction transaction = new Transaction(MainActivity.this, sendSettings);
-//        //Message message = new Message("Segment", phoneNumber);
-//        //message.addMedia(buffer, "*/*", filename);
-//        Message message = new Message("Segment", phoneNumber);
-//        message.setSave(true);
-//        message.addMedia(buffer, "application/octet-stream", filename);
-//        SmsManager smsManager = SmsManager.getSmsManagerForSubscriptionId(sendSettings.getSubscriptionId());
-//        Uri uri = FileProvider.getUriForFile(MainActivity.this, MainActivity.this.getPackageName() + ".provider", new File(filepath));
-//        smsManager.sendMultimediaMessage(MainActivity.this, uri, null, null, null);
 
-
-//            Intent intent = new Intent(Intent.ACTION_SEND);
-//            intent.putExtra("address", phoneNumber);
-//            Log.d("MMS-SEND", "Sent segment to " + phoneNumber);
-//            intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(MainActivity.this, MainActivity.this.getPackageName() + ".provider", new File(filepath)));
-//            intent.setType("*/*");
-//            startActivityForResult(intent, 25);
-    }
 
 
     /**
