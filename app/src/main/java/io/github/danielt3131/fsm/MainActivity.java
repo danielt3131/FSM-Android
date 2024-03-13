@@ -200,9 +200,6 @@ public class MainActivity extends AppCompatActivity {
             if (!saveDir.exists()) {
                 saveDir.mkdir();
             }
-            //Toast toast = new Toast(MainActivity.this);
-            //toast.setText("Hello Maya");
-            //toast.show();
             if (split && segmentSize == 0) {
                 fileSelectButton.setText("Select a preset or use custom mode");
             } else {

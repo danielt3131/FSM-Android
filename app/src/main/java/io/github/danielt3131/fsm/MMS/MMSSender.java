@@ -58,18 +58,6 @@ public class MMSSender {
         message.setFromAddress(Utils.getMyPhoneNumber(context));
         sendMmsMessageNative(context, message, sendSettings);
 
-//        message.addMedia(buffer, "application/octet-stream", filename);
-//        SmsManager smsManager = SmsManager.getSmsManagerForSubscriptionId(sendSettings.getSubscriptionId());
-//        Uri uri = FileProvider.getUriForFile(MainActivity.this, MainActivity.this.getPackageName() + ".provider", new File(filepath));
-//        smsManager.sendMultimediaMessage(MainActivity.this, uri, null, null, null);
-
-
-//            Intent intent = new Intent(Intent.ACTION_SEND);
-//            intent.putExtra("address", phoneNumber);
-//            Log.d("MMS-SEND", "Sent segment to " + phoneNumber);
-//            intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(MainActivity.this, MainActivity.this.getPackageName() + ".provider", new File(filepath)));
-//            intent.setType("*/*");
-//            startActivityForResult(intent, 25);
     }
 
 

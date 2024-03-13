@@ -56,7 +56,6 @@ public class Permissions {
             }
             return hasRW;
         }
-        //ActivityCompat.requestPermissions(context, permissionList, 22);
         return false;
     }
 
