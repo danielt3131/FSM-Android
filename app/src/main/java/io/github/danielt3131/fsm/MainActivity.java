@@ -17,17 +17,14 @@
 
 package io.github.danielt3131.fsm;
 
-import android.Manifest;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -38,8 +35,6 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -49,10 +44,12 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import io.github.danielt3131.fsm.MMS.MMSSender;
+
 public class MainActivity extends AppCompatActivity {
+
     Button fileSelectButton, startButton, textPreset, emailPreset, customSize;
     Switch toggleSwitch;
-    final int READ_WRITE_PERM_REQ = 15;
     final int SEGMENT_SIZE_EMAIL_PRESET = 20000000; // 20MB
     final int SEGMENT_SIZE_MMS_PRESET = 1000000;
     final int INPUT_FILE = 10;
@@ -62,7 +59,17 @@ public class MainActivity extends AppCompatActivity {
     final String FILE_SELECT = "File Select";
     boolean hasRW = false;
 
-    TextView inputSegmentSize;
+    TextView inputSegmentSize, inputPhoneNumber;
+    Permissions permissionList;
+    PackageManager packageManager = this.getPackageManager();
+
+    /**
+     * The creation method
+     * @param savedInstanceState If the activity is being re-initialized after
+     *     previously being shut down then this Bundle contains the data it most
+     *     recently supplied in {@link #onSaveInstanceState}.  <b><i>Note: Otherwise it is null.</i></b>
+     *
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,9 +81,10 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
         // Checking and getting permissions on startup
-        getPermissions();
+        permissionList = new Permissions(MainActivity.this, MainActivity.this);
+        permissionList.getReadWritePermissions();
 
-        // Force portrat on phones
+        // Force portrait mode on phones
         int screenSize = getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK;
         if (screenSize == Configuration.SCREENLAYOUT_SIZE_SMALL || screenSize == Configuration.SCREENLAYOUT_SIZE_NORMAL) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -89,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
         textPreset = findViewById(R.id.mmsPreset);
         emailPreset = findViewById(R.id.emailPreset);
         customSize = findViewById(R.id.customMode);
+        inputPhoneNumber = findViewById(R.id.inputPhoneNumber);
         // Set listeners
         fileSelectButton.setOnClickListener(fileSelectView);
         toggleSwitch.setOnCheckedChangeListener(toggleSwitchListener);
@@ -97,12 +106,13 @@ public class MainActivity extends AppCompatActivity {
         textPreset.setOnClickListener(textMsgPresetListener);
         emailPreset.setOnClickListener(emailPresetListener);
         customSize.setOnClickListener(customSizeListener);
-
+        inputPhoneNumber.setOnClickListener(getPhoneNumber);
     }
 
     boolean gotInputPath = false;
     boolean merged = true;
     boolean split = false;
+    boolean sendMMS = false;
 
 
 
@@ -118,6 +128,22 @@ public class MainActivity extends AppCompatActivity {
             if (gotInputPath) {
                 fileSelectButton.setText("Press the start button to begin");
             }
+            inputPhoneNumber.setVisibility(View.VISIBLE);
+        }
+    };
+    String phoneNumber = "";
+    View.OnClickListener getPhoneNumber = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (inputPhoneNumber.toString().length() != 0) {
+                phoneNumber = inputPhoneNumber.getText().toString();
+                permissionList.getMMSPermissions();
+                if (packageManager.hasSystemFeature(PackageManager.FEATURE_TELEPHONY)) {
+                    sendMMS = true;
+                } else {
+                    sendMMS = false;
+                }
+            }
         }
     };
 
@@ -130,6 +156,8 @@ public class MainActivity extends AppCompatActivity {
                 fileSelectButton.setText("Press the start button to begin");
             }
             Toast.makeText(MainActivity.this, "Using email preset | 20MB", Toast.LENGTH_SHORT).show();
+            sendMMS = false;
+            inputPhoneNumber.setVisibility(View.INVISIBLE);
         }
     };
 
@@ -138,6 +166,8 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             inputSegmentSize.setVisibility(View.VISIBLE);
             inputSegmentSize.setHint("Segment size in bytes");
+            sendMMS = false;
+            inputPhoneNumber.setVisibility(View.INVISIBLE);
         }
     };
 
@@ -149,7 +179,9 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener getSegmentSize = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+            if (inputSegmentSize.toString().length() != 0) {
+                segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+            }
             if (split && gotInputPath && (inputSegmentSize.getText().length() > 0)) {
                 fileSelectButton.setText("Press the start button to begin");
             }
@@ -184,9 +216,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             Toast toast = new Toast(MainActivity.this);
-            if (!hasRW) {
-                getPermissions(); // Need permissions
-            } else {
+            if (permissionList.checkReadWritePermissions()) {
                 if (merged && gotInputPath) {
                     try {
                         mergeFile();
@@ -206,13 +236,23 @@ public class MainActivity extends AppCompatActivity {
                             toast.show();
                         } else {
                             Log.d("Segment Size", String.valueOf(segmentSize));
+                            Log.d("Phone number", phoneNumber);
                             splitFile();
-                            toast.setText("The operation of split file completed. The output is at Documents/FSM");
-                            toast.show();
+                            if (sendMMS) {
+                                toast.setText("Sent the segments to " + phoneNumber);
+                                toast.show();
+                            } else {
+                                toast.setText("The operation of split file completed. The output is at Documents/FSM");
+                                toast.show();
+                            }
                         }
                     } catch (IOException e) {
                         toast.setText("There was an error " + e);
                         toast.show();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
                     }
                 } else if (gotInputPath) {
                     toast.setText("No mode selected");
@@ -221,6 +261,8 @@ public class MainActivity extends AppCompatActivity {
                     toast.setText("No file selected");
                     toast.show();
                 }
+            } else {
+                permissionList.getReadWritePermissions();
             }
         }
     };
@@ -251,6 +293,7 @@ public class MainActivity extends AppCompatActivity {
                 emailPreset.setVisibility(View.VISIBLE);
                 customSize.setVisibility(View.VISIBLE);
                 split = true;
+                inputPhoneNumber.setVisibility(View.INVISIBLE);
                 merged = false;
                 fileSelectButton.setText(FILE_SELECT);
             } else {
@@ -262,6 +305,7 @@ public class MainActivity extends AppCompatActivity {
                 emailPreset.setVisibility(View.INVISIBLE);
                 customSize.setVisibility(View.INVISIBLE);
                 split = false;
+                sendMMS = false;
                 merged = true;
             }
         }
@@ -288,6 +332,9 @@ public class MainActivity extends AppCompatActivity {
                 inputFilePath = "/storage/emulated/0/" + uri.getPath().substring(uri.getPath().lastIndexOf(":") + 1);
                 gotInputPath = true;
             }
+        } else if (resultCode == Activity.RESULT_OK && requestCode == 25) {
+            Log.d("MMS", "Called share menu");
+            //notify();
         } else {
             fileSelectButton.setText(FILE_SELECT);  // Resets the file select button text
         }
@@ -297,7 +344,7 @@ public class MainActivity extends AppCompatActivity {
      * Method to split a file into n segments
      * @throws IOException
      */
-    public void splitFile() throws IOException {
+    public void splitFile() throws Exception {
         File inputFile = new File(inputFilePath);
         long numberOfSegments = inputFile.length() / segmentSize;
         long remainderSegmentSize = inputFile.length() % segmentSize;
@@ -316,24 +363,34 @@ public class MainActivity extends AppCompatActivity {
             Log.d("FileRead", "Read File");
             String outputName = String.format("%s.fsm.%d", inputFileName, i);
             String outputFilePath = SAVE_LOCATION + outputName;
-            FileOutputStream outputStream = new FileOutputStream(outputFilePath);
-            outputStream.write(buffer, 0, buffer.length);
-            Log.d("FileWrite", "Wrote segment");
-            outputStream.close();
+            if (sendMMS) {
+                MMSSender.sendMmsSegment(buffer,"Segment " + i, outputName, phoneNumber, MainActivity.this);
+                //wait();
+            } else {
+                FileOutputStream outputStream = new FileOutputStream(outputFilePath);
+                outputStream.write(buffer, 0, buffer.length);
+                Log.d("FileWrite", "Wrote segment");
+                outputStream.close();
+            }
         }
 
         if (remainderSegmentSize != 0) {
-            fileInputStream.read(buffer,0, (int) remainderSegmentSize);
+            fileInputStream.read(buffer, 0, (int) remainderSegmentSize);
             String outputName = String.format("%s.fsm.%d", inputFileName, i);
             String outputFilePath = SAVE_LOCATION + outputName;
-            FileOutputStream outputStream = new FileOutputStream(outputFilePath);
-            outputStream.write(buffer, 0, (int) remainderSegmentSize);
-            outputStream.close();
+            if (sendMMS) {
+                MMSSender.sendMmsSegment(buffer, "Segment " + i, outputName, phoneNumber, MainActivity.this);
+            } else {
+                FileOutputStream outputStream = new FileOutputStream(outputFilePath);
+                outputStream.write(buffer, 0, (int) remainderSegmentSize);
+                outputStream.close();
+            }
         }
         // Close the input stream
         fileInputStream.close();
         inputSegmentSize.setText("");   // Reset the input segment size
     }
+
 
 
     /**
@@ -371,37 +428,4 @@ public class MainActivity extends AppCompatActivity {
         // Close the output stream
         outputStream.close();
     }
-
-    /**
-     * Method to ensure the necessary permissions are granted
-     */
-    public void getPermissions() {
-        // Request all files permission for ANDROID 11+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (Environment.isExternalStorageManager()) {
-                hasRW = true;
-            } else {
-                Toast toast = new Toast(this);
-                toast.setText("Need all files permission to continue");
-                toast.show();
-                // Pull up settings
-                try {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                    startActivity(intent);
-                } catch (Exception e) {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                    startActivity(intent);
-                }
-            }
-        } else { // Android 10 and below
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(MainActivity.this, new String[] {android.Manifest.permission.READ_EXTERNAL_STORAGE}, 19);
-            } else if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(MainActivity.this, new String[] {android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 20);
-            } else {
-                hasRW = true;
-            }
-        }
-    }
-
 }
