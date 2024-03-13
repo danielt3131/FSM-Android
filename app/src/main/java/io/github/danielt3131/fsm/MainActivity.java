@@ -129,6 +129,7 @@ public class MainActivity extends AppCompatActivity {
                 fileSelectButton.setText("Press the start button to begin");
             }
             inputPhoneNumber.setVisibility(View.VISIBLE);
+            inputPhoneNumber.setHint("Phone Number");
         }
     };
     String phoneNumber = "";
