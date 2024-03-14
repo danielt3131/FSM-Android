@@ -21,7 +21,6 @@ package io.github.danielt3131.fsm;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
@@ -61,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
 
     TextView inputSegmentSize, inputPhoneNumber;
     Permissions permissionList;
-    PackageManager packageManager = this.getPackageManager();
+
 
     /**
      * The creation method
@@ -139,11 +138,7 @@ public class MainActivity extends AppCompatActivity {
             if (inputPhoneNumber.toString().length() != 0) {
                 phoneNumber = inputPhoneNumber.getText().toString();
                 permissionList.getMMSPermissions();
-                if (packageManager.hasSystemFeature(PackageManager.FEATURE_TELEPHONY)) {
-                    sendMMS = true;
-                } else {
-                    sendMMS = false;
-                }
+                sendMMS = true;
             }
         }
     };
