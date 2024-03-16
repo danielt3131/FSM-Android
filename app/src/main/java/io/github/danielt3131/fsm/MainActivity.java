@@ -28,6 +28,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -60,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
 
     TextView inputSegmentSize, inputPhoneNumber;
     Permissions permissionList;
+    ProgressBar progressBar;
 
 
     /**
@@ -97,6 +99,9 @@ public class MainActivity extends AppCompatActivity {
         emailPreset = findViewById(R.id.emailPreset);
         customSize = findViewById(R.id.customMode);
         inputPhoneNumber = findViewById(R.id.inputPhoneNumber);
+
+        progressBar = findViewById(R.id.progressbar);
+
         // Set listeners
         fileSelectButton.setOnClickListener(fileSelectView);
         toggleSwitch.setOnCheckedChangeListener(toggleSwitchListener);
@@ -214,6 +219,7 @@ public class MainActivity extends AppCompatActivity {
             Toast toast = new Toast(MainActivity.this);
             if (permissionList.checkReadWritePermissions()) {
                 if (merged && gotInputPath) {
+                    progressBar.setProgress(0); // Reset progress bar
                     mergeFileThread.start();
                     toast.setText("The operation of merge file completed. The output is at Documents/FSM and the file segments were deleted");
                     toast.show();
@@ -228,6 +234,7 @@ public class MainActivity extends AppCompatActivity {
                         } else {
                             Log.d("Segment Size", String.valueOf(segmentSize));
                             Log.d("Phone number", phoneNumber);
+                            progressBar.setProgress(0); // Reset progress bar
                             splitFileThread.start();
                             if (sendMMS) {
                                 toast.setText("Sent the segments to " + phoneNumber);
@@ -362,6 +369,10 @@ public class MainActivity extends AppCompatActivity {
         File inputFile = new File(inputFilePath);
         long numberOfSegments = inputFile.length() / segmentSize;
         long remainderSegmentSize = inputFile.length() % segmentSize;
+        int numMessages = (int) numberOfSegments;
+        if (remainderSegmentSize != 0) {
+            numMessages++;
+        }
         byte[] buffer;
         if (segmentSize <= MAX_BUFFFERSIZE) {
             buffer = new byte[segmentSize];
@@ -372,13 +383,17 @@ public class MainActivity extends AppCompatActivity {
         long i;
         Log.d("Split File", "Started Split File");
 
+        // Setting progress bar
+        progressBar.setMax(numMessages);
+
         for (i = 1; i <= numberOfSegments; i++) {
             fileInputStream.read(buffer, 0, buffer.length);
             Log.d("FileRead", "Read File");
             String outputName = String.format("%s.fsm.%d", inputFileName, i);
             String outputFilePath = SAVE_LOCATION + outputName;
+            progressBar.setProgress((int) i, true);
             if (sendMMS) {
-                MMSSender.sendMmsSegment(buffer,"Segment " + i + " out of " + numberOfSegments, outputName, phoneNumber, MainActivity.this);
+                MMSSender.sendMmsSegment(buffer,"Segment " + i + " out of " + numMessages, outputName, phoneNumber, MainActivity.this);
                 //wait();
             } else {
                 FileOutputStream outputStream = new FileOutputStream(outputFilePath);
@@ -392,8 +407,9 @@ public class MainActivity extends AppCompatActivity {
             fileInputStream.read(buffer, 0, (int) remainderSegmentSize);
             String outputName = String.format("%s.fsm.%d", inputFileName, i);
             String outputFilePath = SAVE_LOCATION + outputName;
+            progressBar.setProgress((int) i, true);
             if (sendMMS) {
-                MMSSender.sendMmsSegment(buffer, "Segment " + i + " out of " + i, outputName, phoneNumber, MainActivity.this);
+                MMSSender.sendMmsSegment(buffer, "Segment " + i + " out of " + numMessages, outputName, phoneNumber, MainActivity.this);
             } else {
                 FileOutputStream outputStream = new FileOutputStream(outputFilePath);
                 outputStream.write(buffer, 0, (int) remainderSegmentSize);
@@ -432,6 +448,7 @@ public class MainActivity extends AppCompatActivity {
                 fileInputStream.read(buffer, 0, indivSegmentSize);
                 outputStream.write(buffer, 0, indivSegmentSize);
                 fileInputStream.close();
+                progressBar.setProgress((int) i, true);
                 i++;
             } else {
                 hasCompleted = true;
