@@ -48,8 +48,6 @@ public class MMSSender {
         sendSettings.setPort(sendSettings.getPort());
         sendSettings.setUseSystemSending(true);
 
-        //TODO Make MMS sending work
-
         Transaction transaction = new Transaction(context, sendSettings);
         Message message = new Message(txtMessage, phoneNumber);
         message.addMedia(buffer, "application/octet-stream", filename);

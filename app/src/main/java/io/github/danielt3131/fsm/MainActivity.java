@@ -135,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener getPhoneNumber = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            if (inputPhoneNumber.toString().length() != 0) {
+            if (!inputPhoneNumber.toString().isEmpty() || !phoneNumber.isEmpty()) {
                 phoneNumber = inputPhoneNumber.getText().toString();
                 permissionList.getMMSPermissions();
                 sendMMS = true;
@@ -214,14 +214,9 @@ public class MainActivity extends AppCompatActivity {
             Toast toast = new Toast(MainActivity.this);
             if (permissionList.checkReadWritePermissions()) {
                 if (merged && gotInputPath) {
-                    try {
-                        mergeFile();
-                        toast.setText("The operation of merge file completed. The output is at Documents/FSM and the file segments were deleted");
-                        toast.show();
-                    } catch (IOException e) {
-                        toast.setText("There was an error " + e);
-                        toast.show();
-                    }
+                    mergeFileThread.start();
+                    toast.setText("The operation of merge file completed. The output is at Documents/FSM and the file segments were deleted");
+                    toast.show();
                 } else if (split && gotInputPath) {
                     try {
                         //segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
@@ -233,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
                         } else {
                             Log.d("Segment Size", String.valueOf(segmentSize));
                             Log.d("Phone number", phoneNumber);
-                            splitFile();
+                            splitFileThread.start();
                             if (sendMMS) {
                                 toast.setText("Sent the segments to " + phoneNumber);
                                 toast.show();
@@ -242,11 +237,6 @@ public class MainActivity extends AppCompatActivity {
                                 toast.show();
                             }
                         }
-                    } catch (IOException e) {
-                        toast.setText("There was an error " + e);
-                        toast.show();
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -262,6 +252,34 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+    /**
+     * Create threads for splitFile and mergeFile
+     */
+
+    Thread splitFileThread = new Thread(new Runnable() {
+        @Override
+        public void run() {
+            try {
+                splitFile();
+            } catch (Exception e) {
+                Log.e("Split File", e.getMessage());
+            }
+        }
+    });
+
+
+    Thread mergeFileThread = new Thread(new Runnable() {
+        @Override
+        public void run() {
+            try {
+                mergeFile();
+            } catch (Exception e) {
+                Log.e("Split File", e.getMessage());
+            }
+        }
+    });
+
 
     /**
      * Method to create intent to summon the system file picker to get an input file name and path
@@ -360,7 +378,7 @@ public class MainActivity extends AppCompatActivity {
             String outputName = String.format("%s.fsm.%d", inputFileName, i);
             String outputFilePath = SAVE_LOCATION + outputName;
             if (sendMMS) {
-                MMSSender.sendMmsSegment(buffer,"Segment " + i, outputName, phoneNumber, MainActivity.this);
+                MMSSender.sendMmsSegment(buffer,"Segment " + i + " out of " + numberOfSegments, outputName, phoneNumber, MainActivity.this);
                 //wait();
             } else {
                 FileOutputStream outputStream = new FileOutputStream(outputFilePath);
@@ -375,7 +393,7 @@ public class MainActivity extends AppCompatActivity {
             String outputName = String.format("%s.fsm.%d", inputFileName, i);
             String outputFilePath = SAVE_LOCATION + outputName;
             if (sendMMS) {
-                MMSSender.sendMmsSegment(buffer, "Segment " + i, outputName, phoneNumber, MainActivity.this);
+                MMSSender.sendMmsSegment(buffer, "Segment " + i + " out of " + i, outputName, phoneNumber, MainActivity.this);
             } else {
                 FileOutputStream outputStream = new FileOutputStream(outputFilePath);
                 outputStream.write(buffer, 0, (int) remainderSegmentSize);
@@ -384,7 +402,6 @@ public class MainActivity extends AppCompatActivity {
         }
         // Close the input stream
         fileInputStream.close();
-        inputSegmentSize.setText("");   // Reset the input segment size
     }
 
 
