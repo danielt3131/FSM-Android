@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">FSM</string>
+    <string name="credits">Lead Developer: Daniel J. Thompson\n\nTesters:\nDrew\n</string>
 </resources>

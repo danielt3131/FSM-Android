@@ -25,6 +25,8 @@ import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -32,8 +34,10 @@ import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.Toolbar;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -58,12 +62,11 @@ public class MainActivity extends AppCompatActivity {
     int MAX_BUFFFERSIZE = 1024 * 1024 * 250;
     final String FILE_SELECT = "File Select";
     boolean hasRW = false;
+    androidx.appcompat.widget.Toolbar toolbar;
 
     TextView inputSegmentSize, inputPhoneNumber;
     Permissions permissionList;
     ProgressBar progressBar;
-
-
     /**
      * The creation method
      * @param savedInstanceState If the activity is being re-initialized after
@@ -99,7 +102,10 @@ public class MainActivity extends AppCompatActivity {
         emailPreset = findViewById(R.id.emailPreset);
         customSize = findViewById(R.id.customMode);
         inputPhoneNumber = findViewById(R.id.inputPhoneNumber);
-
+        toolbar = findViewById(R.id.materialToolbar);
+        setSupportActionBar(toolbar);
+        Log.d("Toolbar", toolbar.getTitle().toString());
+        toolbar.setTitle("File Split Merge");
         progressBar = findViewById(R.id.progressbar);
 
         // Set listeners
@@ -113,11 +119,26 @@ public class MainActivity extends AppCompatActivity {
         inputPhoneNumber.setOnClickListener(getPhoneNumber);
     }
 
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.credits) {
+            startActivity(new Intent(MainActivity.this, CreditsActivity.class));
+            return true;
+        }
+        return false;
+    }
+
     boolean gotInputPath = false;
     boolean merged = true;
     boolean split = false;
     boolean sendMMS = false;
-
 
 
     /**
