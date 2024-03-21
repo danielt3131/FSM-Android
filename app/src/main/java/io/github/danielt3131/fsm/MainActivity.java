@@ -189,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
             inputSegmentSize.setVisibility(View.VISIBLE);
             inputSegmentSize.setHint("Segment size in bytes");
             sendMMS = false;
+            segmentSize = 0;
             inputPhoneNumber.setVisibility(View.INVISIBLE);
         }
     };
@@ -202,7 +203,12 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             if (inputSegmentSize.toString().length() != 0) {
-                segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+                try {
+                    segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+                } catch (NumberFormatException e) {
+                    Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.e("Inputted Segment Size", e.getMessage());
+                }
             }
             if (split && gotInputPath && (inputSegmentSize.getText().length() > 0)) {
                 fileSelectButton.setText("Press the start button to begin");
@@ -241,32 +247,47 @@ public class MainActivity extends AppCompatActivity {
             if (permissionList.checkReadWritePermissions()) {
                 if (merged && gotInputPath) {
                     progressBar.setProgress(0); // Reset progress bar
-                    mergeFileThread.start();
-                    toast.setText("The operation of merge file completed. The output is at Documents/FSM and the file segments were deleted");
-                    toast.show();
-                } else if (split && gotInputPath) {
                     try {
-                        //segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
-                        if (segmentSize == 0) {
-                            //toast.setText("Enter segment size in bytes");
-                            //toast.show();
-                            toast.setText("Choose a preset or custom");
-                            toast.show();
-                        } else {
-                            Log.d("Segment Size", String.valueOf(segmentSize));
-                            Log.d("Phone number", phoneNumber);
-                            progressBar.setProgress(0); // Reset progress bar
-                            splitFileThread.start();
-                            if (sendMMS) {
-                                toast.setText("Sent the segments to " + phoneNumber);
-                                toast.show();
-                            } else {
-                                toast.setText("The operation of split file completed. The output is at Documents/FSM");
-                                toast.show();
+                        mergeFileThread.start();
+                    } catch (IllegalThreadStateException e) {
+                        Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Log.e("Merge File Thread", e.getMessage());
+                    }
+                } else if (split && gotInputPath) {
+                    //segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+                    // Sets the segment size if the user didn't press done when typing in a segment size
+                    if (inputSegmentSize.getVisibility() == View.VISIBLE && segmentSize == 0) {
+                        if (inputSegmentSize.getText().length() != 0) {
+                            try {
+                                segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
+                            } catch (NumberFormatException e) {
+                                // Print the exception as a toast.
+                                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                                Log.e("Inputted Segment Size", e.getMessage());
                             }
                         }
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
+                    } else if (segmentSize == 0) {
+                        //toast.setText("Enter segment size in bytes");
+                        //toast.show();
+                        toast.setText("Choose a preset or custom");
+                        toast.show();
+                    } else {
+                        Log.d("Segment Size", String.valueOf(segmentSize));
+                        Log.d("Phone number", phoneNumber);
+                        progressBar.setProgress(0); // Reset progress bar
+                        try {
+                            splitFileThread.start();
+                        } catch (RuntimeException e) {
+                            Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                            Log.e("Split File Thread", e.getMessage());
+                        }
+                        if (sendMMS) {
+                            toast.setText("Sent the segments to " + phoneNumber);
+                            toast.show();
+                        } else {
+                            toast.setText("The operation of split file completed. The output is at Documents/FSM");
+                            toast.show();
+                        }
                     }
                 } else if (gotInputPath) {
                     toast.setText("No mode selected");
@@ -275,7 +296,7 @@ public class MainActivity extends AppCompatActivity {
                     toast.setText("No file selected");
                     toast.show();
                 }
-            } else {
+            } else{
                 permissionList.getReadWritePermissions();
             }
         }
@@ -303,7 +324,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 mergeFile();
             } catch (Exception e) {
-                Log.e("Split File", e.getMessage());
+                Log.e("Merge File", e.getMessage());
             }
         }
     });
