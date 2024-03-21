@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.text.TextUtils;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.hbisoft.pickit.PickiT;
 import com.hbisoft.pickit.PickiTCallbacks;
@@ -78,7 +79,10 @@ public class MergeFile implements PickiTCallbacks {
     public void run() throws IOException {
         getFilePath();
         if (TextUtils.isEmpty(inputFileName)) {
-            throw new IOException();    // Don't continue inputFileName will be null
+            throw new IOException("Invalid filename");    // Don't continue inputFileName will be null
+        }
+        if (!inputFileName.contains(".fsm")) {
+            throw new IOException("Invalid file");
         }
         String outputName = inputFileName.substring(0, inputFileName.lastIndexOf(".fsm"));
         String segmentDir = filepath.substring(0, filepath.lastIndexOf(outputName));

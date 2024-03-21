@@ -245,6 +245,7 @@ public class MainActivity extends AppCompatActivity {
                     progressBar.setProgress(0); // Reset progress bar
                     try {
                         mergeFileThread.start();
+                        gotInputPath = false;   //Resets the condition to require file selection on next run
                     } catch (IllegalThreadStateException e) {
                         Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
                         Log.e("Merge File Thread", e.getMessage());
@@ -257,8 +258,8 @@ public class MainActivity extends AppCompatActivity {
                                 segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
                             } catch (NumberFormatException e) {
                                 // Print the exception as a toast.
-                                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
                                 Log.e("Inputted Segment Size", e.getMessage());
+                                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
                             }
                         }
                     } else if (segmentSize == 0) {
@@ -270,6 +271,7 @@ public class MainActivity extends AppCompatActivity {
                         progressBar.setProgress(0); // Reset progress bar
                         try {
                             splitFileThread.start();
+                            gotInputPath = false;   //Resets the condition to require file selection on next run
                         } catch (RuntimeException e) {
                             Log.e("Split File Thread", e.getMessage());
                         }
