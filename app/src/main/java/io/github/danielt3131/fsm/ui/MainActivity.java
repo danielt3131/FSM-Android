@@ -15,7 +15,7 @@
  */
 
 
-package io.github.danielt3131.fsm;
+package io.github.danielt3131.fsm.ui;
 
 
 import android.app.Activity;
@@ -34,7 +34,6 @@ import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.Toolbar;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -49,6 +48,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import io.github.danielt3131.fsm.MMS.MMSSender;
+import io.github.danielt3131.fsm.Permissions;
+import io.github.danielt3131.fsm.R;
 
 public class MainActivity extends AppCompatActivity {
 
