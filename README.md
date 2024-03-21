@@ -1,5 +1,5 @@
 ### FSM-Android is a port of the application fsm to Android.
-With defined presets for emails and SMS/MMS.  With the ability to automatically send sengments over MMS with no user intervention.
+With defined presets for emails and SMS/MMS.  With the ability to automatically send segments over MMS with no user intervention.
 
 ### Licensed under the GNU General Public License version 3
 Use of the following libraries
