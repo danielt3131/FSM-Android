@@ -42,7 +42,7 @@
             android:enabled="true"
             android:exported="true" />
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -52,7 +52,7 @@
         </activity>
 
         <activity
-            android:name=".CreditsActivity"
+            android:name=".ui.CreditsActivity"
             android:exported="true">
         </activity>
 

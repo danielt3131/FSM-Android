@@ -15,7 +15,7 @@
  */
 
 
-package io.github.danielt3131.fsm;
+package io.github.danielt3131.fsm.ui;
 
 
 import android.app.Activity;
@@ -34,7 +34,6 @@ import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.Toolbar;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -44,22 +43,19 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.sql.Ref;
 
-import io.github.danielt3131.fsm.MMS.MMSSender;
+import io.github.danielt3131.fsm.MergeFile;
+import io.github.danielt3131.fsm.Permissions;
+import io.github.danielt3131.fsm.R;
+import io.github.danielt3131.fsm.Reference;
+import io.github.danielt3131.fsm.SplitFile;
 
 public class MainActivity extends AppCompatActivity {
 
     Button fileSelectButton, startButton, textPreset, emailPreset, customSize;
     Switch toggleSwitch;
-    final int SEGMENT_SIZE_EMAIL_PRESET = 20000000; // 20MB
-    final int SEGMENT_SIZE_MMS_PRESET = 1000000;
-    final int INPUT_FILE = 10;
-    final String SAVE_LOCATION = "/storage/emulated/0/Documents/FSM/";
     int segmentSize = 0;
-    int MAX_BUFFFERSIZE = 1024 * 1024 * 250;
     final String FILE_SELECT = "File Select";
     boolean hasRW = false;
     androidx.appcompat.widget.Toolbar toolbar;
@@ -147,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener textMsgPresetListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            segmentSize = SEGMENT_SIZE_MMS_PRESET;
+            segmentSize = Reference.SEGMENT_SIZE_MMS_PRESET;
             inputSegmentSize.setVisibility(View.INVISIBLE);
             Toast.makeText(MainActivity.this, "Using text message preset | 1MB", Toast.LENGTH_SHORT).show();
             if (gotInputPath) {
@@ -172,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener emailPresetListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            segmentSize = SEGMENT_SIZE_EMAIL_PRESET;
+            segmentSize = Reference.SEGMENT_SIZE_EMAIL_PRESET;
             inputSegmentSize.setVisibility(View.INVISIBLE);
             if (gotInputPath) {
                 fileSelectButton.setText("Press the start button to begin");
@@ -202,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
     View.OnClickListener getSegmentSize = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            if (inputSegmentSize.toString().length() != 0) {
+            if (!inputSegmentSize.toString().isEmpty()) {
                 try {
                     segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
                 } catch (NumberFormatException e) {
@@ -224,7 +220,7 @@ public class MainActivity extends AppCompatActivity {
         public void onClick(View v) {
             // Create an input stream
             getInputFileURI();
-            File saveDir = new File(SAVE_LOCATION);
+            File saveDir = new File(Reference.SAVE_LOCATION);
             if (!saveDir.exists()) {
                 saveDir.mkdir();
             }
@@ -249,12 +245,12 @@ public class MainActivity extends AppCompatActivity {
                     progressBar.setProgress(0); // Reset progress bar
                     try {
                         mergeFileThread.start();
+                        gotInputPath = false;   //Resets the condition to require file selection on next run
                     } catch (IllegalThreadStateException e) {
                         Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
                         Log.e("Merge File Thread", e.getMessage());
                     }
                 } else if (split && gotInputPath) {
-                    //segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
                     // Sets the segment size if the user didn't press done when typing in a segment size
                     if (inputSegmentSize.getVisibility() == View.VISIBLE && segmentSize == 0) {
                         if (inputSegmentSize.getText().length() != 0) {
@@ -262,13 +258,11 @@ public class MainActivity extends AppCompatActivity {
                                 segmentSize = Integer.parseInt(inputSegmentSize.getText().toString());
                             } catch (NumberFormatException e) {
                                 // Print the exception as a toast.
-                                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
                                 Log.e("Inputted Segment Size", e.getMessage());
+                                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
                             }
                         }
                     } else if (segmentSize == 0) {
-                        //toast.setText("Enter segment size in bytes");
-                        //toast.show();
                         toast.setText("Choose a preset or custom");
                         toast.show();
                     } else {
@@ -277,8 +271,8 @@ public class MainActivity extends AppCompatActivity {
                         progressBar.setProgress(0); // Reset progress bar
                         try {
                             splitFileThread.start();
+                            gotInputPath = false;   //Resets the condition to require file selection on next run
                         } catch (RuntimeException e) {
-                            Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
                             Log.e("Split File Thread", e.getMessage());
                         }
                         if (sendMMS) {
@@ -303,14 +297,15 @@ public class MainActivity extends AppCompatActivity {
     };
 
     /**
-     * Create threads for splitFile and mergeFile
+     * Create threads for SplitFile and MergeFile
      */
 
     Thread splitFileThread = new Thread(new Runnable() {
         @Override
         public void run() {
             try {
-                splitFile();
+                SplitFile splitFile = new SplitFile(fileUri, segmentSize, MainActivity.this, progressBar, phoneNumber);
+                splitFile.run();
             } catch (Exception e) {
                 Log.e("Split File", e.getMessage());
             }
@@ -322,7 +317,8 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             try {
-                mergeFile();
+                MergeFile mergeFile = new MergeFile(fileUri, MainActivity.this, MainActivity.this, progressBar);
+                mergeFile.run();
             } catch (Exception e) {
                 Log.e("Merge File", e.getMessage());
             }
@@ -336,11 +332,8 @@ public class MainActivity extends AppCompatActivity {
     public void getInputFileURI() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("*/*");
-        startActivityForResult(intent, INPUT_FILE);
+        startActivityForResult(intent, Reference.INPUT_FILE);
     }
-
-    String inputFilePath = "";
-    String inputFileName = "";
 
     /**
      * Mode toggle switch listener
@@ -350,8 +343,6 @@ public class MainActivity extends AppCompatActivity {
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
             if (isChecked) {
                 toggleSwitch.setText("Split mode");
-                //inputSegmentSize.setVisibility(View.VISIBLE);
-                //inputSegmentSize.setHint("Segment size in bytes");
                 textPreset.setVisibility(View.VISIBLE);
                 emailPreset.setVisibility(View.VISIBLE);
                 customSize.setVisibility(View.VISIBLE);
@@ -374,6 +365,8 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    Uri fileUri;
+
     /**
      *
      * @param requestCode The integer request code originally supplied to
@@ -387,12 +380,9 @@ public class MainActivity extends AppCompatActivity {
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == Activity.RESULT_OK && requestCode == INPUT_FILE) {
+        if (resultCode == Activity.RESULT_OK && requestCode == Reference.INPUT_FILE) {
             if (data != null) {
-                Uri uri = data.getData();
-                inputFileName = uri.getPath().substring(uri.getPath().lastIndexOf("/") + 1);    // Gets the input file name
-                // Gets absolute file path from th URI assuming it's internal storage not external/sd card storage
-                inputFilePath = "/storage/emulated/0/" + uri.getPath().substring(uri.getPath().lastIndexOf(":") + 1);
+                fileUri = data.getData();
                 gotInputPath = true;
             }
         } else if (resultCode == Activity.RESULT_OK && requestCode == 25) {
@@ -401,103 +391,5 @@ public class MainActivity extends AppCompatActivity {
         } else {
             fileSelectButton.setText(FILE_SELECT);  // Resets the file select button text
         }
-    }
-
-    /**
-     * Method to split a file into n segments
-     * @throws IOException
-     */
-    public void splitFile() throws Exception {
-        File inputFile = new File(inputFilePath);
-        long numberOfSegments = inputFile.length() / segmentSize;
-        long remainderSegmentSize = inputFile.length() % segmentSize;
-        int numMessages = (int) numberOfSegments;
-        if (remainderSegmentSize != 0) {
-            numMessages++;
-        }
-        byte[] buffer;
-        if (segmentSize <= MAX_BUFFFERSIZE) {
-            buffer = new byte[segmentSize];
-        } else {
-            throw new IOException("Segment size exceeded 250MiB");
-        }
-        FileInputStream fileInputStream = new FileInputStream(inputFile);
-        long i;
-        Log.d("Split File", "Started Split File");
-
-        // Setting progress bar
-        progressBar.setMax(numMessages);
-
-        for (i = 1; i <= numberOfSegments; i++) {
-            fileInputStream.read(buffer, 0, buffer.length);
-            Log.d("FileRead", "Read File");
-            String outputName = String.format("%s.fsm.%d", inputFileName, i);
-            String outputFilePath = SAVE_LOCATION + outputName;
-            progressBar.setProgress((int) i, true);
-            if (sendMMS) {
-                MMSSender.sendMmsSegment(buffer,"Segment " + i + " out of " + numMessages, outputName, phoneNumber, MainActivity.this);
-                //wait();
-            } else {
-                FileOutputStream outputStream = new FileOutputStream(outputFilePath);
-                outputStream.write(buffer, 0, buffer.length);
-                Log.d("FileWrite", "Wrote segment");
-                outputStream.close();
-            }
-        }
-
-        if (remainderSegmentSize != 0) {
-            fileInputStream.read(buffer, 0, (int) remainderSegmentSize);
-            String outputName = String.format("%s.fsm.%d", inputFileName, i);
-            String outputFilePath = SAVE_LOCATION + outputName;
-            progressBar.setProgress((int) i, true);
-            if (sendMMS) {
-                MMSSender.sendMmsSegment(buffer, "Segment " + i + " out of " + numMessages, outputName, phoneNumber, MainActivity.this);
-            } else {
-                FileOutputStream outputStream = new FileOutputStream(outputFilePath);
-                outputStream.write(buffer, 0, (int) remainderSegmentSize);
-                outputStream.close();
-            }
-        }
-        // Close the input stream
-        fileInputStream.close();
-    }
-
-
-
-    /**
-     * Method to merge a file
-     * @throws IOException
-     */
-    public void mergeFile() throws IOException {
-        String outputName = inputFileName.substring(0, inputFileName.lastIndexOf(".fsm"));
-        String segmentDir = inputFilePath.substring(0, inputFilePath.lastIndexOf(outputName));
-        //execButton.setText(segmentDir);
-        FileOutputStream outputStream = new FileOutputStream(SAVE_LOCATION + outputName);
-
-        // Calculate segment size for buffer allocation
-        File fileSegmentSize = new File(segmentDir + outputName + ".fsm.1");
-        long segmentSize = fileSegmentSize.length();
-        byte[] buffer = new byte[(int) segmentSize];
-
-        long i = 1;
-        boolean hasCompleted = false;
-        while (!hasCompleted) {
-            String fileSegmentPath = String.format("%s%s.fsm.%d", segmentDir, outputName, i);
-            File fileSegment =  new File(fileSegmentPath);
-            if (fileSegment.exists()) {
-                FileInputStream fileInputStream = new FileInputStream(fileSegment);
-                int indivSegmentSize = (int) fileSegment.length();
-                fileInputStream.read(buffer, 0, indivSegmentSize);
-                outputStream.write(buffer, 0, indivSegmentSize);
-                fileInputStream.close();
-                progressBar.setProgress((int) i, true);
-                i++;
-            } else {
-                hasCompleted = true;
-            }
-            fileSegment.delete();   // Remove segment from storage / auto cleanup
-        }
-        // Close the output stream
-        outputStream.close();
     }
 }

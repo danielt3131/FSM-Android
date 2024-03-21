@@ -14,7 +14,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package io.github.danielt3131.fsm;
+package io.github.danielt3131.fsm.ui;
 
 import android.os.Bundle;
 import android.view.Gravity;
@@ -23,6 +23,8 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import io.github.danielt3131.fsm.R;
 
 public class CreditsActivity extends AppCompatActivity {
     TextView textView;

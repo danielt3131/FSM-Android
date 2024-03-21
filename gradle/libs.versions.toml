@@ -5,10 +5,11 @@ junitVersion = "1.1.5"
 espressoCore = "3.5.1"
 appcompat = "1.6.1"
 material = "1.11.0"
-activity = "1.8.0"
+activity = "1.8.2"
 constraintlayout = "2.1.4"
 androidSmsmms = "c3e678b"
 androidSmsmmsVersion = "kdeconnect-1-21-0"
+pickit = "2.0.5"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -20,6 +21,7 @@ activity = { group = "androidx.activity", name = "activity", version.ref = "acti
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 android-smsmms = { group = "com.github.tibbi", name = "android-smsmms", version.ref = "androidSmsmms" }
 sredman-android-smsmms = { group = "org.kde.invent.sredman", name = "android-smsmms", version.ref = "androidSmsmmsVersion" }
+pickiT = { group = "com.github.HBiSoft", name = "PickiT", version.ref = "pickit" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
