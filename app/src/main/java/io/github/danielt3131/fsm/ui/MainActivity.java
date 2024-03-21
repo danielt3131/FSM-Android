@@ -47,9 +47,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import io.github.danielt3131.fsm.MMS.MMSSender;
 import io.github.danielt3131.fsm.Permissions;
 import io.github.danielt3131.fsm.R;
+import io.github.danielt3131.fsm.SplitFile;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -279,7 +279,7 @@ public class MainActivity extends AppCompatActivity {
                         try {
                             splitFileThread.start();
                         } catch (RuntimeException e) {
-                            Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                            //Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
                             Log.e("Split File Thread", e.getMessage());
                         }
                         if (sendMMS) {
@@ -304,14 +304,15 @@ public class MainActivity extends AppCompatActivity {
     };
 
     /**
-     * Create threads for splitFile and mergeFile
+     * Create threads for SplitFile and mergeFile
      */
 
     Thread splitFileThread = new Thread(new Runnable() {
         @Override
         public void run() {
             try {
-                splitFile();
+                SplitFile splitFile = new SplitFile(uri, segmentSize, MainActivity.this, progressBar, phoneNumber);
+                splitFile.run();
             } catch (Exception e) {
                 Log.e("Split File", e.getMessage());
             }
@@ -375,6 +376,8 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    Uri uri;
+
     /**
      *
      * @param requestCode The integer request code originally supplied to
@@ -390,7 +393,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK && requestCode == INPUT_FILE) {
             if (data != null) {
-                Uri uri = data.getData();
+                uri = data.getData();
                 inputFileName = uri.getPath().substring(uri.getPath().lastIndexOf("/") + 1);    // Gets the input file name
                 // Gets absolute file path from th URI assuming it's internal storage not external/sd card storage
                 inputFilePath = "/storage/emulated/0/" + uri.getPath().substring(uri.getPath().lastIndexOf(":") + 1);
@@ -402,65 +405,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             fileSelectButton.setText(FILE_SELECT);  // Resets the file select button text
         }
-    }
-
-    /**
-     * Method to split a file into n segments
-     * @throws IOException
-     */
-    public void splitFile() throws Exception {
-        File inputFile = new File(inputFilePath);
-        long numberOfSegments = inputFile.length() / segmentSize;
-        long remainderSegmentSize = inputFile.length() % segmentSize;
-        int numMessages = (int) numberOfSegments;
-        if (remainderSegmentSize != 0) {
-            numMessages++;
-        }
-        byte[] buffer;
-        if (segmentSize <= MAX_BUFFFERSIZE) {
-            buffer = new byte[segmentSize];
-        } else {
-            throw new IOException("Segment size exceeded 250MiB");
-        }
-        FileInputStream fileInputStream = new FileInputStream(inputFile);
-        long i;
-        Log.d("Split File", "Started Split File");
-
-        // Setting progress bar
-        progressBar.setMax(numMessages);
-
-        for (i = 1; i <= numberOfSegments; i++) {
-            fileInputStream.read(buffer, 0, buffer.length);
-            Log.d("FileRead", "Read File");
-            String outputName = String.format("%s.fsm.%d", inputFileName, i);
-            String outputFilePath = SAVE_LOCATION + outputName;
-            progressBar.setProgress((int) i, true);
-            if (sendMMS) {
-                MMSSender.sendMmsSegment(buffer,"Segment " + i + " out of " + numMessages, outputName, phoneNumber, MainActivity.this);
-                //wait();
-            } else {
-                FileOutputStream outputStream = new FileOutputStream(outputFilePath);
-                outputStream.write(buffer, 0, buffer.length);
-                Log.d("FileWrite", "Wrote segment");
-                outputStream.close();
-            }
-        }
-
-        if (remainderSegmentSize != 0) {
-            fileInputStream.read(buffer, 0, (int) remainderSegmentSize);
-            String outputName = String.format("%s.fsm.%d", inputFileName, i);
-            String outputFilePath = SAVE_LOCATION + outputName;
-            progressBar.setProgress((int) i, true);
-            if (sendMMS) {
-                MMSSender.sendMmsSegment(buffer, "Segment " + i + " out of " + numMessages, outputName, phoneNumber, MainActivity.this);
-            } else {
-                FileOutputStream outputStream = new FileOutputStream(outputFilePath);
-                outputStream.write(buffer, 0, (int) remainderSegmentSize);
-                outputStream.close();
-            }
-        }
-        // Close the input stream
-        fileInputStream.close();
     }
 
 
