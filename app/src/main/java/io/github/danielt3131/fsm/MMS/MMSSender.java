@@ -69,6 +69,7 @@ public class MMSSender {
         message.addMedia(buffer, "application/octet-stream", filename);
         message.setSave(true);
         Log.d("MMS", "Sent segment");
+        // Sets the address from to the user's phone number based on their SIM Card
         message.setFromAddress(Utils.getMyPhoneNumber(context));
         sendMmsMessageNative(context, message, sendSettings);
 
@@ -76,10 +77,10 @@ public class MMSSender {
 
 
     /**
-     * From KDE Connect
+     * From KDE Connect https://invent.kde.org/network/kdeconnect-android
      * @param context
-     * @param message
-     * @param klinkerSettings
+     * @param message The current message object from the android-smsmms library
+     * @param klinkerSettings The settings object from the android-smsmms library
      */
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
     protected static void sendMmsMessageNative(Context context, Message message, Settings klinkerSettings) {
@@ -125,7 +126,7 @@ public class MMSSender {
             writer.write(new PduComposer(context, sendReq).make());
         } catch (final IOException e)
         {
-            //android.util.Log.e(SENDING_MESSAGE, "Error while writing temporary PDU file: ", e);
+            android.util.Log.e("SENDING_MESSAGE", "Error while writing temporary PDU file: ", e);
         }
 
         SmsManager mSmsManager;
@@ -141,9 +142,9 @@ public class MMSSender {
     }
 
     /**
-     * From KDE Connect
-     * @param pb
-     * @param p
+     * From KDE Connect https://invent.kde.org/network/kdeconnect-android
+     * @param pb object of the PduBody
+     * @param p object of the MMSPart
      * @param id
      * @return
      */
@@ -170,7 +171,8 @@ public class MMSSender {
 
 
     /**
-     * From KDE Connect
+     * From KDE Connect https://invent.kde.org/network/kdeconnect-android
+     * Builds PDU
      * @param context
      * @param fromAddress
      * @param recipients

@@ -35,7 +35,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/fsm_icon_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.FSM"
+        android:theme="@style/AppTheme"
         tools:targetApi="31">
         <service
             android:name="com.android.mms.transaction.TransactionService"
