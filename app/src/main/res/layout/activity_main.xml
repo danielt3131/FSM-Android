@@ -123,15 +123,12 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ProgressBar
+    <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/progressbar"
-        style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="364dp"
         android:layout_height="25dp"
         android:layout_marginTop="27dp"
         android:layout_marginBottom="16dp"
-        android:indeterminateDrawable="@android:drawable/progress_indeterminate_horizontal"
-        android:progressDrawable="@android:drawable/progress_horizontal"
         app:layout_constraintBottom_toTopOf="@+id/toggleSwitch"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
